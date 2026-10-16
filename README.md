@@ -55,9 +55,11 @@ gunbros/
 │   ├── deploy.sh                 # Instalación en dispositivo físico/emulador vía ADB
 │   ├── run_tests.sh              # Compilación y ejecución de CTest en host
 │   └── collect-logs.sh           # Captura continua y filtrada de logs en archivo
-│
-└── legacy/                       # Archivo histórico del código previo para auditoría
+└── docs/                         # Documentación técnica de arquitectura, persistencia y depuración
 ```
+
+> **Nota de archivo**: El código histórico previo ha sido purgado del árbol de trabajo y se conserva íntegramente en la etiqueta Git `legacy-archive`.
+
 
 ---
 
