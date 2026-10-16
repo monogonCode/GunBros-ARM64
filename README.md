@@ -2,6 +2,9 @@
 
 Un puente de compatibilidad y emulación en tiempo real (JIT) de alto rendimiento que permite ejecutar el clásico juego de acción en 3D **GunBros** (desarrollado originalmente por Glu Mobile para arquitecturas ARM de 32 bits / `armeabi-v7a`) en dispositivos Android modernos que solo admiten aplicaciones de 64 bits (Android 14, 15 y 16 / procesadores ARMv9).
 
+> [!IMPORTANT]
+> **Aviso de Propiedad Intelectual**: Este repositorio **NO incluye ni distribuye el archivo APK, assets gráficos/sonoros ni el código original del juego Gun Bros** (propiedad de Glu Mobile / EA). El usuario debe aportar su propia copia legítima del APK original para generar la plantilla base con `scripts/make_base_apk.sh`.
+
 ---
 
 **GunBros ARM64 Bridge** permite ejecutar el juego de Gun Bros en telefonos con veriones actuales de android 64bits combinando:
@@ -20,7 +23,7 @@ El proyecto se encuentra estrictamente desacoplado por responsabilidades:
 gunbros/
 ├── CMakeLists.txt                # Configuración CMake unificada (Android NDK & Host Testing)
 ├── build.sh                      # Script rápido de compilación y empaquetado del APK
-├── base_template.apk             # Plantilla APK base de GunBros
+├── LICENSE                       # Términos de licencia y avisos de derechos de autor
 │
 ├── docs/                         # Documentación técnica completa y guías
 │   ├── architecture.md           # Diagrama de subsistemas, memoria virtual y concurrencia

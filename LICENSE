@@ -1,0 +1,24 @@
+LICENCIA / LICENSE
+
+[PENDIENTE DE ELECCIÓN POR EL AUTOR DEL PROYECTO / PENDING AUTHOR SELECTION]
+
+El código fuente propio de este proyecto (capa de puente, emulación HLE de libc/GLES,
+cargador ELF, subsistema de archivos y parches en memoria) está pendiente de definición
+formal de licencia por parte del autor (por ejemplo: MIT, Apache-2.0, o GPL-2.0 / GPL-3.0
+en consonancia con las bibliotecas utilizadas, como Dynarmic).
+
+Para más detalles, consúltese la sección "Pendiente del autor" en docs/REVIEW_CHANGES.md.
+
+--------------------------------------------------------------------------------
+
+AVISO LEGAL Y DE DERECHOS DE AUTOR / LEGAL NOTICE & DISCLAIMER
+
+Este proyecto es una capa de emulación y compatibilidad técnica independiente, desarrollada
+con fines educativos, de interoperabilidad técnica y preservación de software.
+
+- "Gun Bros" es una marca registrada y propiedad intelectual de Glu Mobile / Electronic Arts Inc.
+- Este repositorio NO contiene, NO distribuye, NO aloja ni proporciona el archivo APK original,
+  assets del juego (texturas, modelos 3D, pistas de audio, efectos sonoros) ni código fuente
+  descompilado del juego Gun Bros.
+- El usuario final debe suministrar su propia copia legítima del archivo APK original de Gun Bros
+  para generar la plantilla base mediante 'scripts/make_base_apk.sh' y ejecutar el software.
