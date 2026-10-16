@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent"
-  xmlns:android="http://schemas.android.com/apk/res/android">
-    <FrameLayout android:layout_width="match_parent" android:layout_height="match_parent">
-        <com.glu.platform.android.GluGL2View android:id="@id/GluGL2SurfaceView" android:layout_width="match_parent" android:layout_height="match_parent" />
-    </FrameLayout>
-</LinearLayout>
