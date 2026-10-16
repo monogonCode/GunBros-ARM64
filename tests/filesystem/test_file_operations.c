@@ -65,24 +65,53 @@ int main(void) {
     gunbros_fclose(r_handle);
     TEST_PASS("gunbros_fread read back verified identical data");
 
-    // 7. Stat verification
-    struct stat st;
-    int stat_res = gunbros_stat("savedata/player.dat", &st);
+    // 7. Stat verification (Bionic ARM32 struct stat layout)
+    _Static_assert(offsetof(gunbros_stat32_t, st_dev) == GUNBROS_STAT32_OFF_DEV, "dev offset");
+    _Static_assert(offsetof(gunbros_stat32_t, st_ino32) == GUNBROS_STAT32_OFF_INO, "ino offset");
+    _Static_assert(offsetof(gunbros_stat32_t, st_mode) == GUNBROS_STAT32_OFF_MODE, "mode offset");
+    _Static_assert(offsetof(gunbros_stat32_t, st_nlink) == GUNBROS_STAT32_OFF_NLINK, "nlink offset");
+    _Static_assert(offsetof(gunbros_stat32_t, st_uid) == GUNBROS_STAT32_OFF_UID, "uid offset");
+    _Static_assert(offsetof(gunbros_stat32_t, st_gid) == GUNBROS_STAT32_OFF_GID, "gid offset");
+    _Static_assert(offsetof(gunbros_stat32_t, st_rdev) == GUNBROS_STAT32_OFF_RDEV, "rdev offset");
+    _Static_assert(offsetof(gunbros_stat32_t, st_size) == GUNBROS_STAT32_OFF_SIZE, "size offset");
+    _Static_assert(offsetof(gunbros_stat32_t, st_blksize) == GUNBROS_STAT32_OFF_BLKSIZE, "blksize offset");
+    _Static_assert(offsetof(gunbros_stat32_t, st_blocks) == GUNBROS_STAT32_OFF_BLOCKS, "blocks offset");
+    _Static_assert(offsetof(gunbros_stat32_t, atime_sec) == GUNBROS_STAT32_OFF_ATIME, "atime offset");
+    _Static_assert(offsetof(gunbros_stat32_t, atime_nsec) == GUNBROS_STAT32_OFF_ATIME_NSEC, "atime_nsec offset");
+    _Static_assert(offsetof(gunbros_stat32_t, mtime_sec) == GUNBROS_STAT32_OFF_MTIME, "mtime offset");
+    _Static_assert(offsetof(gunbros_stat32_t, mtime_nsec) == GUNBROS_STAT32_OFF_MTIME_NSEC, "mtime_nsec offset");
+    _Static_assert(offsetof(gunbros_stat32_t, ctime_sec) == GUNBROS_STAT32_OFF_CTIME, "ctime offset");
+    _Static_assert(offsetof(gunbros_stat32_t, ctime_nsec) == GUNBROS_STAT32_OFF_CTIME_NSEC, "ctime_nsec offset");
+    _Static_assert(offsetof(gunbros_stat32_t, ino64) == GUNBROS_STAT32_OFF_INO64, "ino64 offset");
+    _Static_assert(sizeof(gunbros_stat32_t) == GUNBROS_STAT32_SIZE, "stat32 size");
+
+    uint8_t raw_st[GUNBROS_STAT32_SIZE] = {0};
+    int stat_res = gunbros_stat("savedata/player.dat", raw_st);
     assert(stat_res == 0);
-    assert(st.st_size == sizeof(test_data));
-    TEST_PASS("gunbros_stat successfully queried file metadata");
+
+    gunbros_stat32_t st32;
+    memcpy(&st32, raw_st, sizeof(st32));
+    assert(st32.st_size == (int64_t)sizeof(test_data));
+    assert(st32.st_mode != 0);
+    assert(st32.st_nlink >= 1);
+    assert(st32.st_blksize > 0);
+    assert(st32.mtime_sec > 0);
+    assert(st32.ino64 != 0);
+    TEST_PASS("gunbros_stat successfully queried file metadata (bionic ARM32 layout verified)");
 
     // 8. Rename (crucial for GunBros safe-save mechanism: temp -> savegame)
     int ren_res = gunbros_rename("savedata/player.dat", "savedata/player_final.dat");
     assert(ren_res == 0);
-    assert(gunbros_stat("savedata/player.dat", &st) != 0);
-    assert(gunbros_stat("savedata/player_final.dat", &st) == 0);
+    assert(gunbros_stat("savedata/player.dat", raw_st) != 0);
+    assert(gunbros_stat("savedata/player_final.dat", raw_st) == 0);
+    memcpy(&st32, raw_st, sizeof(st32));
+    assert(st32.st_size == (int64_t)sizeof(test_data));
     TEST_PASS("gunbros_rename atomic file rename");
 
     // 9. Remove
     int rem_res = gunbros_remove("savedata/player_final.dat");
     assert(rem_res == 0);
-    assert(gunbros_stat("savedata/player_final.dat", &st) != 0);
+    assert(gunbros_stat("savedata/player_final.dat", raw_st) != 0);
     TEST_PASS("gunbros_remove deletes target file");
 
     // 10. Directory enumeration

@@ -131,10 +131,53 @@ int gunbros_stat(const char *path, void *st32_out) {
     if (res == 0) {
         if (st32_out != NULL) {
             uint8_t *st32 = (uint8_t*)st32_out;
-            memset(st32, 0, 104);
-            *(uint32_t*)(st32 + 16) = (uint32_t)st.st_mode;
-            *(uint32_t*)(st32 + 48) = (uint32_t)st.st_size;
-            *(uint32_t*)(st32 + 52) = (uint32_t)(st.st_size >> 32);
+            memset(st32, 0, GUNBROS_STAT32_SIZE);
+
+            uint64_t dev = (uint64_t)st.st_dev;
+            uint32_t ino32 = (uint32_t)st.st_ino;
+            uint32_t mode = (uint32_t)st.st_mode;
+            uint32_t nlink = (uint32_t)st.st_nlink;
+            uint32_t uid = (uint32_t)st.st_uid;
+            uint32_t gid = (uint32_t)st.st_gid;
+            uint64_t rdev = (uint64_t)st.st_rdev;
+            int64_t size = (int64_t)st.st_size;
+            uint32_t blksize = (uint32_t)st.st_blksize;
+            int64_t blocks = (int64_t)st.st_blocks;
+
+#if defined(__APPLE__)
+            uint32_t atime = (uint32_t)st.st_atimespec.tv_sec;
+            uint32_t atime_nsec = (uint32_t)st.st_atimespec.tv_nsec;
+            uint32_t mtime = (uint32_t)st.st_mtimespec.tv_sec;
+            uint32_t mtime_nsec = (uint32_t)st.st_mtimespec.tv_nsec;
+            uint32_t ctime = (uint32_t)st.st_ctimespec.tv_sec;
+            uint32_t ctime_nsec = (uint32_t)st.st_ctimespec.tv_nsec;
+#else
+            uint32_t atime = (uint32_t)st.st_atim.tv_sec;
+            uint32_t atime_nsec = (uint32_t)st.st_atim.tv_nsec;
+            uint32_t mtime = (uint32_t)st.st_mtim.tv_sec;
+            uint32_t mtime_nsec = (uint32_t)st.st_mtim.tv_nsec;
+            uint32_t ctime = (uint32_t)st.st_ctim.tv_sec;
+            uint32_t ctime_nsec = (uint32_t)st.st_ctim.tv_nsec;
+#endif
+            uint64_t ino64 = (uint64_t)st.st_ino;
+
+            memcpy(st32 + GUNBROS_STAT32_OFF_DEV,        &dev,        8);
+            memcpy(st32 + GUNBROS_STAT32_OFF_INO,        &ino32,      4);
+            memcpy(st32 + GUNBROS_STAT32_OFF_MODE,       &mode,       4);
+            memcpy(st32 + GUNBROS_STAT32_OFF_NLINK,      &nlink,      4);
+            memcpy(st32 + GUNBROS_STAT32_OFF_UID,        &uid,        4);
+            memcpy(st32 + GUNBROS_STAT32_OFF_GID,        &gid,        4);
+            memcpy(st32 + GUNBROS_STAT32_OFF_RDEV,       &rdev,       8);
+            memcpy(st32 + GUNBROS_STAT32_OFF_SIZE,       &size,       8);
+            memcpy(st32 + GUNBROS_STAT32_OFF_BLKSIZE,    &blksize,    4);
+            memcpy(st32 + GUNBROS_STAT32_OFF_BLOCKS,     &blocks,     8);
+            memcpy(st32 + GUNBROS_STAT32_OFF_ATIME,      &atime,      4);
+            memcpy(st32 + GUNBROS_STAT32_OFF_ATIME_NSEC, &atime_nsec, 4);
+            memcpy(st32 + GUNBROS_STAT32_OFF_MTIME,      &mtime,      4);
+            memcpy(st32 + GUNBROS_STAT32_OFF_MTIME_NSEC, &mtime_nsec, 4);
+            memcpy(st32 + GUNBROS_STAT32_OFF_CTIME,      &ctime,      4);
+            memcpy(st32 + GUNBROS_STAT32_OFF_CTIME_NSEC, &ctime_nsec, 4);
+            memcpy(st32 + GUNBROS_STAT32_OFF_INO64,      &ino64,      8);
         }
         fs_log_stat(path, target_path, 0, (uint64_t)st.st_size, (uint32_t)st.st_mode, 0);
         return 0;
