@@ -37,9 +37,6 @@ SO_PATH="$BUILD_DIR/libandroidplatformjni.so"
 "$STRIP" --strip-unneeded "$SO_PATH"
 echo "[GunBros Build] Stripped $SO_PATH ($(ls -lh "$SO_PATH" | awk '{print $5}'))"
 
-# Copy output to root directory for backward compatibility
-cp "$SO_PATH" "$PROJECT_ROOT/libandroidplatformjni.so"
-
 # Package and sign APK
 "$SCRIPT_DIR/package.sh" "$SO_PATH"
 
