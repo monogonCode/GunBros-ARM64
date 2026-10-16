@@ -19,13 +19,14 @@ if [[ -n "${ADB_SERIAL:-}" ]]; then
 fi
 
 echo "=== [GunBros Logcat] Collecting logs to $OUT_FILE ==="
-echo "Filtered tags: GunBros, GunBrosBridge, GunBrosFS, GLU, dynarmic, DEBUG, AndroidRuntime"
+echo "Filtered tags: GunBrosARM64, GunBrosFS, GunBros, GunBrosBridge, GLU, dynarmic, DEBUG, AndroidRuntime"
 
 $ADB_CMD logcat -c || true
 $ADB_CMD logcat -v time \
+  GunBrosARM64:V \
+  GunBrosFS:V \
   GunBros:V \
   GunBrosBridge:V \
-  GunBrosFS:V \
   GLU:V \
   dynarmic:V \
   DEBUG:V \

@@ -1,6 +1,15 @@
 #include "gunbros/filesystem/filesystem_logger.h"
 #include <string.h>
 
+#ifdef __ANDROID__
+#undef LOG_TAG
+#define LOG_TAG "GunBrosFS"
+#undef LOGI
+#undef LOGE
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+#endif
+
 #ifdef BRIDGE_DEBUG
 static fs_log_level_t s_log_level = FS_LOG_LEVEL_VERBOSE;
 #else

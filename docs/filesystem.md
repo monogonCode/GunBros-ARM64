@@ -136,17 +136,17 @@ Si deseas contribuir a solucionar la persistencia del progreso, estas son las á
 
 ## 7. Diagnóstico y Auditoría en Tiempo Real
 
-Todas las operaciones del sistema de archivos emiten registros detallados en Logcat bajo la etiqueta `GunBrosFS`:
+Todas las operaciones del sistema de archivos emiten registros detallados en Logcat bajo la etiqueta `GunBrosFS` (y los eventos generales del emulador bajo `GunBrosARM64`):
 
 ```bash
-adb logcat -s GunBrosFS
+adb logcat -s GunBrosFS GunBrosARM64
 ```
 
 Ejemplo de salida de auditoría durante la ejecución:
 ```text
 I GunBrosFS: [FS:fopen] SUCCESS slot=1 mode='wb' path='/storage/.../files/temp.dat' (orig='data:/temp.dat')
-I GunBrosFS: [FS:fwrite] slot=1 requested=1024 written=1024 flushed=OK
-I GunBrosFS: [FS:fclose] slot=1 closed OK
-I GunBrosFS: [FS:remove] SUCCESS '/storage/.../files/prefs.dat'
+I GunBrosFS: [FS:fwrite] slot=1 req=1024 got=1024 errno=0
+I GunBrosFS: [FS:fclose] slot=1 path='/storage/.../files/temp.dat' OK
+I GunBrosFS: [FS:remove] SUCCESS '/storage/.../files/prefs.dat' (orig='data:/prefs.dat')
 I GunBrosFS: [FS:rename] SUCCESS '/storage/.../files/temp.dat' -> '/storage/.../files/prefs.dat'
 ```
