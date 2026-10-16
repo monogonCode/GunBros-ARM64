@@ -7,11 +7,6 @@
 #include "gunbros/compatibility/jni_virtual_machine.h"
 #include <string.h>
 
-typedef struct {
-    const char *name;
-    hle_fn fn;
-} hle_def_t;
-
 static inline void hle_ret64(hle_t *c, uint64_t v) {
     c->r0 = (uint32_t)v;
     c->out_r1 = (uint32_t)(v >> 32);

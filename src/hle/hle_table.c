@@ -4,48 +4,106 @@
 #include <unistd.h>
 #include <pthread.h>
 
-static const char* s_plt_names[N_PLT] = {
-    "clock", "rewind", "bind", "glGenRenderbuffersOES", "glEnable", "modff", "glTexCoordPointer", "gethostbyname",
-    "difftime", "glCopyTexImage2D", "strftime", "calloc", "glDeleteRenderbuffersOES", "glHint", "clock_gettime", "fwrite",
-    "glEnableClientState", "glFrontFace", "glDeleteFramebuffersOES", "usleep", "memcpy", "connect", "glFramebufferTexture2DOES", "glMatrixMode",
-    "glDisable", "sinf", "realloc", "send", "glAlphaFunc", "glClear", "pthread_mutex_init", "glClearStencil",
-    "srand48", "strspn", "getsockname", "gettimeofday", "strcat", "glColor4x", "remove", "glGetError",
-    "rmdir", "glScalex", "strcasecmp", "__cxa_finalize", "__cxa_guard_release", "glRenderbufferStorageOES", "mkdir", "malloc",
-    "glStencilMask", "strrchr", "strncmp", "glCompressedTexImage2D", "__gnu_Unwind_Find_exidx", "ioctl", "__cxa_begin_cleanup", "recv",
-    "strlen", "glLoadIdentity", "pthread_mutex_lock", "ctime", "glClearColor", "opendir", "strtod", "acosf",
-    "stat", "__cxa_atexit", "glBindFramebufferOES", "sqrtf", "sendto", "gmtime", "snprintf", "__cxa_pure_virtual",
-    "glReadPixels", "dup", "glShadeModel", "atexit", "select", "strncasecmp", "glActiveTexture", "__android_log_print",
-    "fdopen", "pthread_mutex_destroy", "glColorMask", "mktime", "glGenFramebuffersOES", "memmove", "fclose", "glBlendFunc",
-    "setsockopt", "fread", "strncat", "fopen", "vsprintf", "gethostname", "__android_log_assert", "ceilf",
-    "glBindTexture", "glDepthRangex", "time", "strtok", "glDepthMask", "getsockopt", "atoll", "closedir",
-    "glDepthRangef", "glLoadMatrixf", "glDeleteTextures", "localtime", "close", "glDisableClientState", "glCullFace", "glPixelStorei",
-    "glGetIntegerv", "asinf", "sscanf", "strncpy", "glBindRenderbufferOES", "strptime", "__cxa_guard_acquire", "glDrawElements",
-    "glColor4f", "memset", "floorf", "inet_ntoa", "glTexImage2D", "cosf", "__android_log_vprint", "qsort",
-    "glDepthFunc", "glDrawArrays", "fprintf", "mkstemp", "inet_addr", "glClearDepthf", "strcspn", "abort",
-    "memcmp", "vsnprintf", "recvfrom", "glScissor", "sprintf", "socket", "fseek", "memchr",
-    "atan2f", "__cxa_type_match", "glGetString", "glBindBuffer", "glPolygonOffset", "rename", "pthread_mutex_unlock", "raise",
-    "strstr", "strcmp", "__errno", "lrand48", "glVertexPointer", "glViewport", "ftell", "free",
-    "atanf", "atoi", "readdir", "strchr", "glTexEnvx", "glClientActiveTexture", "glColorPointer", "glAlphaFuncx",
-    "strdup", "puts", "glTexParameteri", "glFramebufferRenderbufferOES", "gethostbyaddr", "glGenTextures", "glCheckFramebufferStatusOES", "wcslen",
-    "strcpy", "shutdown"
-};
+#define MAX_HLE_HANDLERS 256
+#define MAX_HLE_STUBS 512
 
-_Static_assert(sizeof(s_plt_names) / sizeof(s_plt_names[0]) == N_PLT, "s_plt_names length must equal N_PLT");
+_Static_assert(MAX_HLE_STUBS <= 0x1000, "MAX_HLE_STUBS must not collide with JVM SWI range 0x1000");
+_Static_assert(MAX_HLE_HANDLERS <= MAX_HLE_STUBS, "Handler registry capacity must fit within stubs");
 
-static hle_fn s_hle_table[N_PLT] = {0};
+typedef struct {
+    const char *name;
+    hle_fn fn;
+} hle_registered_entry_t;
+
+typedef struct {
+    char name[64];
+    hle_fn fn;
+} hle_stub_entry_t;
+
+static hle_registered_entry_t s_registered_handlers[MAX_HLE_HANDLERS];
+static size_t s_registered_handlers_count = 0;
+
+static hle_stub_entry_t s_stubs[MAX_HLE_STUBS];
+static int s_stub_count = 0;
+
 static volatile int s_guest_dead = 0;
 static volatile uint64_t s_call_start_ns = 0;
 
-int hle_find_plt_index(const char *name) {
-    if (!name) return -1;
-    for (int i = 0; i < N_PLT; i++) {
-        if (strcmp(name, s_plt_names[i]) == 0) return i;
+void hle_register_module(const hle_def_t *defs, size_t count) {
+    if (!defs || count == 0) return;
+    for (size_t i = 0; i < count; i++) {
+        const char *name = defs[i].name;
+        hle_fn fn = defs[i].fn;
+        if (!name || !*name) continue;
+
+        // Check for duplicate registration and update
+        bool found = false;
+        for (size_t j = 0; j < s_registered_handlers_count; j++) {
+            if (strcmp(s_registered_handlers[j].name, name) == 0) {
+                s_registered_handlers[j].fn = fn;
+                found = true;
+                break;
+            }
+        }
+        if (found) continue;
+
+        if (s_registered_handlers_count >= MAX_HLE_HANDLERS) {
+            LOGE("hle_register_module: registry full (max %d), cannot register '%s'",
+                 MAX_HLE_HANDLERS, name);
+            return;
+        }
+
+        s_registered_handlers[s_registered_handlers_count].name = name;
+        s_registered_handlers[s_registered_handlers_count].fn = fn;
+        s_registered_handlers_count++;
     }
-    return -1;
+}
+
+int hle_resolve_import(const char *name) {
+    if (!name || !*name) return -1;
+
+    // Check if this symbol already has an assigned stub slot
+    for (int i = 0; i < s_stub_count; i++) {
+        if (strcmp(s_stubs[i].name, name) == 0) {
+            return i;
+        }
+    }
+
+    if (s_stub_count >= MAX_HLE_STUBS) {
+        LOGE("hle_resolve_import: stub table full (max %d), cannot resolve '%s'",
+             MAX_HLE_STUBS, name);
+        return -1;
+    }
+
+    // Look up handler in registered modules
+    hle_fn fn = NULL;
+    for (size_t i = 0; i < s_registered_handlers_count; i++) {
+        if (strcmp(s_registered_handlers[i].name, name) == 0) {
+            fn = s_registered_handlers[i].fn;
+            break;
+        }
+    }
+
+    int idx = s_stub_count++;
+    strncpy(s_stubs[idx].name, name, sizeof(s_stubs[idx].name) - 1);
+    s_stubs[idx].name[sizeof(s_stubs[idx].name) - 1] = '\0';
+    s_stubs[idx].fn = fn;
+
+    if (!fn) {
+        LOGW("ELF loader: guest import '%s' has no HLE handler registered", name);
+    }
+
+    return idx;
+}
+
+int hle_find_plt_index(const char *name) {
+    return hle_resolve_import(name);
 }
 
 const char* hle_get_plt_name(int idx) {
-    if (idx >= 0 && idx < N_PLT) return s_plt_names[idx];
+    if (idx >= 0 && idx < s_stub_count) {
+        return s_stubs[idx].name;
+    }
     return "unknown";
 }
 
@@ -55,24 +113,19 @@ static uint64_t now_ns(void) {
     return ((uint64_t)ts.tv_sec * 1000000000ull) + (uint64_t)ts.tv_nsec;
 }
 
-static void register_defs(const hle_def_t *defs, size_t count) {
-    for (size_t i = 0; i < count; i++) {
-        int idx = hle_find_plt_index(defs[i].name);
-        if (idx >= 0) {
-            s_hle_table[idx] = defs[i].fn;
-        } else {
-            LOGE("hle_init: '%s' not found in s_plt_names", defs[i].name);
-        }
-    }
-}
-
 void hle_init(void) {
-    memset(s_hle_table, 0, sizeof(s_hle_table));
-    register_defs(g_hle_libc_string_defs, g_hle_libc_string_defs_count);
-    register_defs(g_hle_libc_time_defs, g_hle_libc_time_defs_count);
-    register_defs(g_hle_libc_stdio_defs, g_hle_libc_stdio_defs_count);
-    register_defs(g_hle_net_stubs_defs, g_hle_net_stubs_defs_count);
-    register_defs(g_hle_gles1_defs, g_hle_gles1_defs_count);
+    s_registered_handlers_count = 0;
+    s_stub_count = 0;
+    memset(s_registered_handlers, 0, sizeof(s_registered_handlers));
+    memset(s_stubs, 0, sizeof(s_stubs));
+
+    hle_register_module(g_hle_libc_string_defs, g_hle_libc_string_defs_count);
+    hle_register_module(g_hle_libc_time_defs, g_hle_libc_time_defs_count);
+    hle_register_module(g_hle_libc_stdio_defs, g_hle_libc_stdio_defs_count);
+    hle_register_module(g_hle_net_stubs_defs, g_hle_net_stubs_defs_count);
+    hle_register_module(g_hle_gles1_defs, g_hle_gles1_defs_count);
+
+    LOGI("HLE initialized with %zu registered function handlers", s_registered_handlers_count);
 }
 
 void on_dynarmic_svc(uint32_t swi) {
@@ -104,9 +157,9 @@ void on_dynarmic_svc(uint32_t swi) {
         return;
     }
 
-    if (swi < N_PLT) {
+    if (swi < MAX_HLE_STUBS) {
         int idx = (int)swi;
-        hle_fn fn = s_hle_table[idx];
+        hle_fn fn = (idx < s_stub_count) ? s_stubs[idx].fn : NULL;
         if (fn) {
             hle_t c;
             memset(&c, 0, sizeof(c));
@@ -125,14 +178,15 @@ void on_dynarmic_svc(uint32_t swi) {
             return;
         }
 
-        static uint32_t seen[N_PLT] = {0};
+        static uint32_t seen[MAX_HLE_STUBS] = {0};
         if (seen[idx]++ < 3) {
             uint32_t r0 = dynarmic_backend_get_reg(0);
             uint32_t r1 = dynarmic_backend_get_reg(1);
             uint32_t r2 = dynarmic_backend_get_reg(2);
             uint32_t lr = dynarmic_backend_get_reg(14);
-            LOGI("UNHANDLED PLT %s (idx=%d) r0=0x%x r1=0x%x r2=0x%x lr=0x%x",
-                 s_plt_names[idx], idx, r0, r1, r2, lr);
+            const char *sym_name = (idx < s_stub_count) ? s_stubs[idx].name : "unknown";
+            LOGW("UNHANDLED PLT %s (idx=%d) r0=0x%x r1=0x%x r2=0x%x lr=0x%x",
+                 sym_name, idx, r0, r1, r2, lr);
         }
         return;
     }

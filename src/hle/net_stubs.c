@@ -182,7 +182,8 @@ const hle_def_t g_hle_net_stubs_defs[] = {
 
     // C++ runtime, guards, exceptions & unwinding
     {"__cxa_guard_acquire", h_cxa_guard_acquire}, {"__cxa_guard_release", h_cxa_guard_release},
-    {"__cxa_pure_virtual", h_cxa_pure_virtual}, {"__cxa_atexit", h_ret0}, {"atexit", h_ret0},
+    {"__cxa_pure_virtual", h_cxa_pure_virtual}, {"__cxa_call_unexpected", h_cxa_pure_virtual},
+    {"__cxa_atexit", h_ret0}, {"atexit", h_ret0},
     {"__cxa_finalize", h_ret0}, {"__gnu_Unwind_Find_exidx", h_ret0}, {"__cxa_begin_cleanup", h_ret0},
     {"__cxa_type_match", h_ret0}, {"__errno", hle_errno},
 

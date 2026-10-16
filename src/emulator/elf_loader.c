@@ -88,9 +88,9 @@ static void apply_relocations(const uint8_t *buf, uint8_t *code_base) {
         for (uint32_t i = 0; i < count; i++) {
             uint32_t sym_idx = ELF32_R_SYM(rel[i].r_info);
             const char *sym_name = strtab + symtab[sym_idx].st_name;
-            int plt_idx = hle_find_plt_index(sym_name);
-            if (plt_idx >= 0) {
-                uint32_t stub_addr = GUEST_STUBS_BASE + plt_idx * 8;
+            int stub_idx = hle_resolve_import(sym_name);
+            if (stub_idx >= 0) {
+                uint32_t stub_addr = GUEST_STUBS_BASE + stub_idx * 8;
                 *(uint32_t*)(code_base + rel[i].r_offset) = stub_addr;
             }
         }
@@ -114,13 +114,9 @@ static void apply_relocations(const uint8_t *buf, uint8_t *code_base) {
                     *(uint32_t*)(code_base + rel[i].r_offset) = target;
                 } else {
                     const char *sym_name = strtab + symtab[sym_idx].st_name;
-                    int plt_idx = hle_find_plt_index(sym_name);
-                    if (plt_idx >= 0) {
-                        uint32_t stub_addr = GUEST_STUBS_BASE + plt_idx * 8;
-                        *(uint32_t*)(code_base + rel[i].r_offset) = stub_addr;
-                    } else if (strcmp(sym_name, "__cxa_call_unexpected") == 0) {
-                        int pure_idx = hle_find_plt_index("__cxa_pure_virtual");
-                        uint32_t stub_addr = GUEST_STUBS_BASE + (pure_idx >= 0 ? pure_idx : 0) * 8;
+                    int stub_idx = hle_resolve_import(sym_name);
+                    if (stub_idx >= 0) {
+                        uint32_t stub_addr = GUEST_STUBS_BASE + stub_idx * 8;
                         *(uint32_t*)(code_base + rel[i].r_offset) = stub_addr;
                     }
                 }
@@ -206,8 +202,8 @@ bool elf_loader_load(const uint8_t *buf, size_t buf_len, const char *game_dir) {
         }
     }
 
-    // Setup 178 PLT import stubs at 0x80000000 (svc i; bx lr)
-    for (int i = 0; i < N_PLT; i++) {
+    // Setup HLE import stubs at 0x80000000 (svc i; bx lr)
+    for (int i = 0; i < MAX_HLE_STUBS; i++) {
         uint32_t *s = (uint32_t*)(stubs_base + i * 8);
         s[0] = 0xef000000 | i;
         s[1] = 0xe12fff1e;
@@ -274,7 +270,7 @@ bool elf_loader_load(const uint8_t *buf, size_t buf_len, const char *game_dir) {
     game_patches_apply_all(code_base);
 
     // Install guest helpers (qsort)
-    int qsort_idx = hle_find_plt_index("qsort");
+    int qsort_idx = hle_resolve_import("qsort");
     game_patches_install_helpers(stubs_base, qsort_idx);
 
     // Execute .init_array constructors

@@ -5,7 +5,8 @@
 
 GUNBROS_EXTERN_C_BEGIN
 
-#define N_PLT 178
+#define MAX_HLE_STUBS 512
+#define N_PLT MAX_HLE_STUBS
 #define STOP_ADDR 0x8000e000u
 
 typedef enum {
@@ -24,7 +25,14 @@ typedef struct {
 
 typedef void (*hle_fn)(hle_t *c);
 
+typedef struct {
+    const char *name;
+    hle_fn fn;
+} hle_def_t;
+
 void hle_init(void);
+void hle_register_module(const hle_def_t *defs, size_t count);
+int  hle_resolve_import(const char *name);
 int  hle_find_plt_index(const char *name);
 const char* hle_get_plt_name(int idx);
 
