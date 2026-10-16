@@ -20,7 +20,13 @@ echo "  CTest: $CTEST_BIN"
 
 "$CMAKE_BIN" --build "$BUILD_DIR" -j"$(nproc)"
 
+# Clean up any leftover temporary directories from previous runs
+rm -rf /tmp/gunbros_fs_test /tmp/gunbros_persist_test /tmp/gunbros_hle_test
+
 echo "=== [GunBros Tests] Running CTest ==="
 "$CTEST_BIN" --test-dir "$BUILD_DIR" --output-on-failure --verbose
+
+# Post-test cleanup
+rm -rf /tmp/gunbros_fs_test /tmp/gunbros_persist_test /tmp/gunbros_hle_test
 
 echo "=== [GunBros Tests] All tests completed successfully! ==="
