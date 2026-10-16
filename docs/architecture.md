@@ -33,10 +33,11 @@ El proyecto está diseñado bajo el principio de **responsabilidad única**, sep
 +-------------------v---+   +-----------v-------+   +-------v-------------------+
 |     Emulador Core     |   |   Capa Plataforma |   | Capa de Compatibilidad    |
 |                       |   |                   |   |                           |
-| - dynarmic_backend    |   | - android_window  |   | - game_patches            |
-| - elf_loader          |   | - android_audio   |   | - jni_virtual_machine     |
-| - guest_memory        |   | - pcm_ring        |   |                           |
-| - hle_dispatcher      |   | - jni_env_helper  |   |                           |
+| - dynarmic_backend    |   | - android_window  |   | - guest_symbols (macros)  |
+| - elf_loader (SHA256) |   | - android_audio   |   | - game_patches (tabla)    |
+| - guest_memory        |   | - pcm_ring        |   | - game_hooks (touch hack) |
+| - hle_table / modules |   | - jni_env_helper  |   | - jni_virtual_machine     |
+|   (libc/stdio/net/gl) |   |                   |   | - jni_methods / jni_audio |
 +-----------------------+   +-------------------+   +---------------------------+
                     |                   |
 +-------------------v-------------------v---------------------------------------+
@@ -44,7 +45,7 @@ El proyecto está diseñado bajo el principio de **responsabilidad única**, sep
 |                                                                               |
 | - path_mapper: Redirección de rutas heredadas a Scoped Storage moderno        |
 | - file_handles: Tabla virtual de descriptores aislada del host (1..64)        |
-| - file_operations: fopen, fread, fwrite (autoflush), fseek, rename, remove    |
+| - file_operations: fopen, fread, fwrite (autoflush), fseek, rename, stat      |
 | - directory_operations: opendir, readdir, closedir, mkdir, rmdir              |
 | - filesystem_logger: Auditoría y diagnóstico de I/O en Logcat (tag GunBrosFS) |
 +-------------------------------------------------------------------------------+
@@ -55,34 +56,43 @@ El proyecto está diseñado bajo el principio de **responsabilidad única**, sep
 ## 3. Descripción Detallada de Subsistemas
 
 ### 3.1. Subsistema Bridge (`include/gunbros/bridge/`, `src/bridge/`)
-- **`bridge_core`**: Coordina el ciclo de vida de la aplicación (`bridge_init`, `bridge_start`, `bridge_step_frame`, `bridge_pause`, `bridge_resume`, `bridge_destroy`). Gestiona el cerrojo global del emulador (`g_emu_mutex`), despacha eventos táctiles acumulados en la cola de entrada y ejecuta la función principal de renderizado del motor invitado (`nativeRender`).
+- **`bridge_core`**: Coordina el ciclo de vida de la aplicación (`bridge_init`, `bridge_start`, `bridge_step_frame`, `bridge_pause`, `bridge_resume`, `bridge_destroy`). Gestiona el cerrojo global del emulador (`g_emu_mutex`), despacha eventos táctiles delegando las acciones específicas del juego a `game_hooks`, y ejecuta la función principal de renderizado del motor invitado (`nativeRender`).
 - **`jni_exports`**: Define las funciones JNI nativas requeridas por las clases Java históricas de Glu Mobile (`GluPlatformActivityJNI`, `GWallet`, etc.). Su única responsabilidad es recibir las llamadas de Android, verificar los tipos de datos y reenviarlas a los módulos nativos correspondientes sin incrustar lógica de negocio.
 
-### 3.2. Subsistema de Emulación (`include/gunbros/emulator/`, `src/emulator/`)
+### 3.2. Subsistema de Emulación y HLE (`include/gunbros/emulator/`, `src/emulator/`, `src/hle/`)
 - **`dynarmic_backend`**: Envoltorio C++20 sobre el motor JIT Dynarmic. Configura las tablas de páginas de memoria, trampas de interrupción por software (SVC), registros de coprocesador y cachés de bloques compilados. Ejecuta el código ARM32 invitado a partir de una dirección de memoria dada.
-- **`elf_loader`**: Analiza el binario ELF de 32 bits `libandroidplatform.so`. Lee las cabeceras de programa (`PT_LOAD`), mapea los segmentos en el espacio de memoria emulada, resuelve símbolos de la tabla de enlaces dinámicos (PLT) asociándolos con la tabla de despacho HLE y procesa las reubicaciones dinámicas.
+- **`elf_loader`**: Analiza el binario ELF de 32 bits `libandroidplatform.so`. Lee las cabeceras de programa (`PT_LOAD`), mapea los segmentos en el espacio de memoria emulada, calcula el hash criptográfico SHA-256 del binario cargado (contrastándolo opcionalmente con `EXPECTED_GUEST_SHA256`) y resuelve símbolos de importación dinámicamente por nombre mediante `hle_resolve_import`.
 - **`guest_memory`**: Gestiona el mapa de memoria virtual de 32 bits, proporcionando funciones de traducción bidireccional segura entre punteros invitados de 32 bits y punteros reales de 64 bits del host.
-- **`hle_dispatcher`**: Contiene los manejadores de Emulación de Alto Nivel (HLE) para 178 símbolos de bibliotecas estándar (Bionic libc, libm, libz y OpenGL ES 1.1). Cuando el código invitado ejecuta una llamada a través de la PLT, Dynarmic dispara una instrucción SVC que este módulo intercepta para extraer los parámetros de los registros de la CPU emulada (`r0`–`r3` y pila) y ejecutar la rutina equivalente nativa de 64 bits.
+- **Capa HLE Modular (`src/hle/`)**: Desacoplada del monolito original en módulos especializados registrados dinámicamente mediante tablas declarativas `{name, handler}`:
+  - `libc_string.c`: Operaciones de memoria, cadenas, `snprintf` seguro y `sscanf` normalizado con anchos guest de 32 bits.
+  - `libc_time.c`: Funciones temporales (`time`, `clock_gettime`, `localtime_r`, etc.) restringiendo la escritura a enteros de 4 bytes para evitar corrupción de memoria.
+  - `libc_stdio.c`: Glue de archivos que enlaza `fopen`, `fread`, `fwrite`, `fseek` (con signo preservado) y `stat` con `gunbros_fs_core`.
+  - `net_stubs.c`: Stubs de red para APIs obsoletas de sockets e interfaces de depuración.
+  - `gles1.c`: Intercepción y reenvío de primitivas y extensiones OpenGL ES 1.1 CM.
+  - `hle_table.c`: Registro central de módulos HLE, asignación de stubs PLT y despacho de SVC desde Dynarmic.
 
 ### 3.3. Subsistema de Sistema de Archivos (`include/gunbros/filesystem/`, `src/filesystem/`)
-- **`path_mapper`**: Resuelve y normaliza todas las rutas de archivos que solicita el juego. Transforma rutas fijas obsoletas (como `/sdcard/glu/...` o `/data/data/com.glu.android.gunbros_free/...`) hacia el almacenamiento privado seguro de la aplicación (Scoped Storage). Corrige el fallo clásico de Glu que recortaba nombres de archivos (`ackTOC*` -> `packTOC*`) y elimina prefijos virtuales (`data:`, `temp:`, `cache:`).
-- **`file_handles`**: Tabla virtual de descriptores de archivo con índices del `1` al `64`. Protege los descriptores estándar del sistema operativo anfitrión (`0` para stdin, `1` para stdout, `2` para stderr, sockets de logcat y pipes internos de EGL) evitando que el código emulado pueda cerrarlos o alterarlos accidentalmente.
-- **`file_operations`**: Implementa `fopen`, `fclose`, `fread`, `fwrite`, `fseek`, `ftell`, `stat`, `remove` y `rename`. Aplica vaciado inmediato de búfer (`fflush`) en cada escritura para prevenir pérdidas de datos si Android congela el proceso.
-- **`directory_operations`**: Emula las operaciones de directorios de POSIX (`opendir`, `readdir`, `closedir`, `mkdir`, `rmdir`), traduciendo estructuras `dirent` de 64 bits a la estructura esperada por el código de 32 bits.
-- **`filesystem_logger`**: Sistema centralizado de auditoría que registra cada operación de archivo, bytes leídos/escritos, rutas resueltas y códigos de error `errno` en Logcat bajo la etiqueta `GunBrosFS`.
+- **`path_mapper`**: Resuelve y normaliza todas las rutas de archivos que solicita el juego. Transforma rutas fijas obsoletas hacia el almacenamiento privado seguro de la aplicación (Scoped Storage). Corrige el truncamiento de Glu (`ackTOC*` -> `packTOC*`) y elimina prefijos virtuales (`data:`, `temp:`, `cache:`).
+- **`file_handles`**: Tabla virtual de descriptores de archivo con índices del `1` al `64`. Protege los descriptores estándar del host (`stdin`, `stdout`, `stderr`, sockets y pipes) evitando que el código emulado los cierre o altere.
+- **`file_operations`**: Implementa `fopen`, `fclose`, `fread`, `fwrite`, `fseek`, `ftell`, `stat`, `remove` y `rename`. Aplica vaciado inmediato de búfer (`fflush`) y proporciona un layout de `struct stat` idéntico al de Bionic ARM32 (104 bytes).
+- **`directory_operations`**: Emula operaciones de directorios POSIX (`opendir`, `readdir`, `closedir`, `mkdir`, `rmdir`).
+- **`filesystem_logger`**: Auditoría y diagnóstico de I/O en Logcat bajo la etiqueta unificada `GunBrosFS`.
 
 ### 3.4. Subsistema de Plataforma (`include/gunbros/platform/`, `src/platform/`)
-- **`android_window`**: Interfaz con `ANativeWindow` de Android y el contexto EGL (OpenGL ES 1.1 CM). Calcula automáticamente el centrado y bandas negras (*letterboxing* / *pillarboxing*) para adaptar el formato original 5:3 / 15:9 a pantallas ultrapanorámicas modernas (20:9 o 21:9), ajustando las coordenadas de corte en `glViewport` y `glScissor`.
-- **`android_audio`**: Motor de reproducción de audio de baja latencia basado en AAudio (con soporte de respaldo para AudioTrack), alimentado desde un búfer circular continuo.
-- **`pcm_ring`**: Búfer circular de bytes lock-free para un único productor y un único consumidor (SPSC) de 64 KB de capacidad, implementado con operaciones atómicas (`acquire`/`release`) para garantizar transferencia de audio fluida y sin bloqueos entre hilos.
-- **`jni_env_helper`**: Utilidades para obtener el puntero `JNIEnv*` del hilo actual y gestionar referencias globales de la JVM de manera segura entre hilos secundarios.
+- **`android_window`**: Interfaz con `ANativeWindow` de Android y el contexto EGL (OpenGL ES 1.1 CM) con soporte de letterboxing.
+- **`android_audio`**: Motor de audio de baja latencia basado en AAudio alimentado desde un búfer circular.
+- **`pcm_ring`**: Búfer circular de bytes lock-free para un único productor y un único consumidor (SPSC) de 64 KB de capacidad.
+- **`jni_env_helper`**: Gestión segura de punteros `JNIEnv*` y referencias globales entre hilos.
 
 ### 3.5. Subsistema de Compatibilidad (`include/gunbros/compatibility/`, `src/compatibility/`)
-- **`game_patches`**: Aplica parches binarios en caliente directamente sobre la memoria del juego tras cargar el ELF:
-  - Anula llamadas bloqueantes a servidores antiguos de Glu y GameSpy que ya no existen en Internet.
-  - Habilita soporte multitáctil contemporáneo para controles de doble palanca (*dual-stick*).
-  - Corrige matrices de transformación de modelos 3D y fogonazos de armas.
-- **`jni_virtual_machine`**: Estructuras sintéticas en memoria emulada que simulan una instancia funcional de `JavaVM` y `JNIEnv` para resolver las consultas del juego sobre idioma, país, modelo de teléfono y estado de red sin necesidad de llamar a la JVM de Android en cada ocasión.
+- **`guest_symbols.h`**: Centraliza todas las direcciones mágicas, constantes numéricas y offsets de estructuras del binario guest ARM32 (evitando valores dispersos en el código).
+- **`game_patches`**: Tabla declarativa de parches binarios `{addr, expected_old, new_val, name}`:
+  - Valida opcionalmente los opcodes originales antes de escribir en caliente.
+  - Soporta modo captura bajo `BRIDGE_DEBUG` para registrar los opcodes originales de parches no verificados.
+  - Aborta la aplicación del parche y registra error ante discrepancias de bytes esperados.
+- **`game_hooks`**: Aloja ganchos específicos del comportamiento del juego, como la detección táctil de selección de personaje en `TouchEnded`.
+- **`jni_virtual_machine`**: Gestiona las estructuras sintéticas de `JavaVM` y `JNIEnv` emuladas.
+- **`jni_methods` y `jni_audio`**: Despacho de métodos JNI mediante una tabla asociativa `{name, handler}` desacoplada de cadenas de `strcmp`, aislando el subsistema de audio de las consultas del sistema.
 
 ---
 
