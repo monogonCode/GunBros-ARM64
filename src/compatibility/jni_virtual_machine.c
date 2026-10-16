@@ -201,7 +201,13 @@ void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
             if (strcmp(mname, "resdlStringEvent") == 0) {
                 *r0 = GUEST_RESDL_STRING;
             } else if (strcmp(mname, "OpenAPKFile") == 0) {
+#ifdef BRIDGE_DEBUG
+                uint32_t fname_arg = get_jni_method_arg(idx, *r3, sp, 0);
+                const char *fname = (const char*)guest_to_host(fname_arg);
+                LOGI("[BRIDGE_DEBUG:JNI] OpenAPKFile called for '%s' - returning NULL", fname ? fname : "NULL");
+#else
                 DLOG("JNI OpenAPKFile: returning NULL (resources exist on disk)");
+#endif
                 *r0 = 0;
             } else {
                 *r0 = GUEST_DUMMY_OBJ;

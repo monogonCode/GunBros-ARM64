@@ -14,6 +14,14 @@ int gunbros_fopen(const char *path, const char *mode) {
 
     char norm_path[GUNBROS_PATH_MAX];
     const char *target_path = path_mapper_normalize(path, norm_path, sizeof(norm_path));
+
+#ifdef BRIDGE_DEBUG
+    if (path && (strstr(path, "savegame.dat") || strstr(path, "prefs.dat") || strncmp(path, "data:", 5) == 0)) {
+        LOGI("[BRIDGE_DEBUG:SAVE] gunbros_fopen called for '%s' (norm='%s') mode='%s'",
+             path, norm_path ? norm_path : "", mode ? mode : "");
+    }
+#endif
+
     FILE *fp = (target_path && mode) ? fopen(target_path, mode) : NULL;
     int err = errno;
 
