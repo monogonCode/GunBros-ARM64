@@ -98,7 +98,10 @@ int gunbros_fseek(int slot, long offset, int whence) {
 
 long gunbros_ftell(int slot) {
     FILE *fp = file_handles_get(slot);
-    if (!fp) return 0;
+    if (!fp) {
+        errno = EBADF;
+        return -1L;
+    }
     return ftell(fp);
 }
 

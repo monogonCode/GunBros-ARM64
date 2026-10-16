@@ -443,7 +443,7 @@ static void h_fwrite(hle_t *c) {
     c->r0 = (uint32_t)gunbros_fwrite(src, c->r1, c->r2, (int)c->r3);
 }
 static void h_fseek(hle_t *c) {
-    c->r0 = (uint32_t)gunbros_fseek((int)c->r0, (long)c->r1, (int)c->r2);
+    c->r0 = (uint32_t)gunbros_fseek((int)c->r0, (long)(int32_t)c->r1, (int)c->r2);
 }
 static void h_ftell(hle_t *c) {
     c->r0 = (uint32_t)gunbros_ftell((int)c->r0);
