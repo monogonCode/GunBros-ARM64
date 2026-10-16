@@ -4,11 +4,7 @@ Un puente de compatibilidad y emulación en tiempo real (JIT) de alto rendimient
 
 ---
 
-## 🎮 ¿Por qué existe este proyecto?
-
-Los procesadores móviles contemporáneos (Snapdragon 8 Gen 2/3, Google Tensor G3/G4, Dimensity 9200+, etc.) han eliminado por completo el soporte por hardware para el conjunto de instrucciones de 32 bits (AArch32). Esto hace imposible ejecutar juegos legendarios de la era clásica de Android en dispositivos modernos.
-
-**GunBros ARM64 Bridge** soluciona este desafío combinando:
+**GunBros ARM64 Bridge** permite ejecutar el juego de Gun Bros en telefonos con veriones actuales de android 64bits combinando:
 - **Dynarmic**: Recompilación dinámica JIT de código ARM32 a ARM64 en tiempo real a 60 FPS estables.
 - **Capa HLE (High-Level Emulation)**: Intercepción de 178 llamadas al sistema (Bionic libc, libm, libz, POSIX y OpenGL ES 1.1 CM).
 - **Parches en Caliente**: Anulación de llamadas a servidores antiguos cerrados (Glu y GameSpy), habilitación de multitáctil dual-stick contemporáneo y adaptación visual a pantallas ultrapanorámicas (20:9 o 21:9).
