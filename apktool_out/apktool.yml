@@ -1,0 +1,16 @@
+version: 3.0.3
+apkFileName: Gun Bros Reloaded.apk
+usesFramework:
+  ids:
+  - 1
+sdkInfo:
+  minSdkVersion: 5
+versionInfo:
+  versionCode: 350
+  versionName: 3.5.0
+resourcesInfo:
+  packageId: 127
+doNotCompress:
+- arsc
+- png
+- assets/gunbros.big

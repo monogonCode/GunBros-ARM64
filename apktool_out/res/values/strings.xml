@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="of_key_cannot_be_null">"OpenFeintSettings.key cannot be null. Please specify your application's product key during construction."</string>
+    <string name="of_secret_cannot_be_null">"OpenFeintSettings.secret cannot be null. Please specify your application's product secret during construction."</string>
+    <string name="of_id_cannot_be_null">OpenFeintSettings.id cannot be null. Please specify your application id during construction.</string>
+    <string name="of_name_cannot_be_null">"OpenFeintSettings.name cannot be null. Please specify your application's name during construction."</string>
+    <string name="of_unexpected_response_format">Unexpected response format.</string>
+    <string name="of_unknown_server_error">Unknown server error.</string>
+    <string name="of_null_icon_url">iconUrl is null - make sure to load() this Achievement before calling downloadIcon.</string>
+    <string name="of_achievement_unlock_null">"Can't unlock an achievement with a null resourceID."</string>
+    <string name="of_achievement_load_null">"Can't load an achievement with a null resourceID."</string>
+    <string name="of_profile_url_null">profilePictureUrl is null - make sure to load() this User before calling downloadProfilePicture.</string>
+    <string name="of_low_memory_profile_pic">Your device may not have enough memory to complete this operation. Restarting may free up enough memory.</string>
+    <string name="of_profile_picture_download_failed">Sorry - there was a problem downloading this profile picture. Please try again.</string>
+    <string name="of_nodisk">Not enough room on your %1$s. Please free up some disk space and try again.</string>
+    <string name="of_operation_not_permitted_due_to_parental_controls">This operation is not permitted due to parental controls being enabled on this device.</string>
+    <string name="of_sdcard">sdcard</string>
+    <string name="of_device">device</string>
+    <string name="of_loading_feint">Loading Feint...</string>
+    <string name="of_no">No</string>
+    <string name="of_yes">Yes</string>
+    <string name="of_ok">OK</string>
+    <string name="of_cancel">Cancel</string>
+    <string name="of_io_exception_on_download">I/O exception reading download</string>
+    <string name="of_cant_compress_blob">Error compressing blob.</string>
+    <string name="of_no_blob">Score has no blob to download</string>
+    <string name="of_achievement_unlocked">Achievement Unlocked!</string>
+    <string name="of_timeout">"The request didn't complete in time."</string>
+    <string name="of_bitmap_decode_error">Error decoding bitmap.</string>
+    <string name="of_file_not_found">File not found</string>
+    <string name="of_error_parsing_error_message">Error parsing error message.</string>
+    <string name="of_server_error_code_format">Server responded with code %1$d</string>
+    <string name="of_ioexception_reading_body">IOException reading response body.</string>
+    <string name="of_switched_accounts">Switched Accounts</string>
+    <string name="of_now_logged_in_as_format">You are now logged as: %1$s</string>
+    <string name="of_profile_pic_changed">Your profile picture has been changed.</string>
+    <string name="of_crash_report_query">"Feint couldn't initialize
+Would you like to send a crash report and wait for recovery?"</string>
+    <string name="of_no_video">"Your device doesn't support video playback."</string>
+    <string name="of_home">Home</string>
+    <string name="of_banned_dialog">This user or application has been banned. All Feint functionality is disabled.</string>
+    <string name="of_settings">Settings</string>
+    <string name="of_exit_feint">Exit Feint</string>
+    <string name="of_offline_notification">You are offline.</string>
+    <string name="of_offline_notification_line2">Feint requires an active network connection.</string>
+    <string name="of_score_submitted_notification">High Score submitted</string>
+    <string name="of_malformed_request_error">"Your request contains the string // - please check to make sure you didn't omit any resourceID."</string>
+    <string name="app_name">Gun Bros</string>
+    <string name="xperia_content">true</string>
+    <string name="IDS_OK">OK</string>
+    <string name="IDS_YES">Yes</string>
+    <string name="IDS_NO">No</string>
+    <string name="IDS_NEVER">Never</string>
+    <string name="IDS_NOTNOW">Not Now</string>
+    <string name="IDS_RETRY">Retry</string>
+    <string name="IDS_EXIT">Exit</string>
+    <string name="IDS_RESUME">Resume</string>
+    <string name="IDS_RESTART">Start Over</string>
+    <string name="IDS_LOADING">Loading...</string>
+    <string name="IDS_PLEASE_WAIT">Please wait...</string>
+    <string name="IDS_CLOSE">Close</string>
+    <string name="IDS_WARNING">Warning</string>
+    <string name="IDS_ERROR">Error</string>
+    <string name="IDS_CHECKSUM">Performing resource file integrity check...</string>
+    <string name="IDS_CHECKSUM_FAILED_SIZE">File integrity check failed: Wrong size.</string>
+    <string name="IDS_CHECKSUM_FAILED_CHECKSUM">File integrity check failed: Checksum value %d is wrong.</string>
+    <string name="IDS_CHECKSUM_FAILED_GENERIC">"File integrity check failed: "</string>
+    <string name="IDS_DOWNLOAD_PROMPT">You need the resource pack to play. The resource pack is %s. It is recommended that you use Wi-Fi to download. Would you like to download it to your internal memory or your SD card?</string>
+    <string name="IDS_DOWNLOAD_PROMPT_WITH_SPECIAL">You need the resources to play. The resources total %s. It is recommended that you use Wi-Fi to download. Would you like to download it to your internal memory or your SD card?</string>
+    <string name="IDS_DOWNLOAD_OPTION_PHONE_MEMORY">Internal Memory</string>
+    <string name="IDS_DOWNLOAD_OPTION_SD_CARD">SD Card</string>
+    <string name="IDS_DOWNLOADING">"Downloading Additional Resources
+Progress: %s..."</string>
+    <string name="IDS_DOWNLOAD_CANCELLED_BY_USER">Download cancelled.</string>
+    <string name="IDS_DOWNLOAD_FAILED_GENERIC">Download failed.</string>
+    <string name="IDS_DOWNLOAD_FAILED_BAD_SIZE" formatted="false">Download failed -- wrong size on server. Please contact androidsupport@glu.com about this, and be sure to include where you downloaded %s from and the version: %s</string>
+    <string name="IDS_DOWNLOAD_FAILED_CONNECTION_FAILED">Download failed. Could not connect to server.</string>
+    <string name="IDS_DOWNLOAD_FAILED_CONNECTION_DROPPED">Download failed. Lost connection with server. Please try again in an area with stronger signal or Wi-Fi coverage.</string>
+    <string name="IDS_DOWNLOAD_FAILED_INSUFFICIENT_STORAGE">Download failed: Insufficient storage. %s bytes free required.</string>
+    <string name="IDS_DOWNLOAD_FAILED_INSUFFICIENT_STORAGE_DETAILED" formatted="false">Download failed: Insufficient storage. %s bytes free required, %s bytes available.</string>
+    <string name="IDS_DOWNLOAD_FAILED_UNKNOWN_REASON">Download failed. Unknown download error.</string>
+    <string name="IDS_DOWNLOAD_FAILED_NO_SD_CARD">Download failed: SD card not found.</string>
+    <string name="IDS_DOWNLOAD_FAILED_COULD_NOT_SAVE">Download failed: Could not save resource file. You may need to have as much as 35% more free space than the file requires to be able to save.</string>
+    <string name="IDS_DOWNLOAD_RESUME_PROMPT">You may be able to resume your download. %s is the current target. Resume downloading?</string>
+    <string name="IDS_DOWNLOAD_AFTER_UPDATE">Some resources need to be updated. %s is the current target. Resume downloading?</string>
+    <string name="IDS_RESTART_CONFIRM">Are you sure you want to start your download over?</string>
+    <string name="IDS_PLAY_OR_DELETE_PROMPT">Would you like to play the game, or delete the resource pack from your device? You will not lose your save data if you delete the resource pack, and you can always download it again.</string>
+    <string name="IDS_PLAY">Play</string>
+    <string name="IDS_DELETE">Delete</string>
+    <string name="IDS_DELETE_CONFIRM">"Delete resource pack? You will free %s but you won't be able to play until you download it again."</string>
+    <string name="IDS_DELETE_SUCCESS">Resource pack deleted successfully.</string>
+    <string name="IDS_DELETE_FAILED">"Failed to delete resource pack: "</string>
+    <string name="IDS_SD_EJECTED_PROMPT">Resource file missing. Please put the appropriate SD card back in and try again or quit.</string>
+    <string name="IDS_SD_EJECTED_RETRY">Retry</string>
+    <string name="IDS_SD_EJECTED_QUIT">Quit</string>
+    <string name="IDS_SD_STARTUP_COMPUTER_ACCESSING">A computer is accessing your SD card, and %s cannot access the game resources. Please change your SD card connection options and try again.</string>
+    <string name="IDS_SD_STARTUP_CHECKING">Your SD card is currently being scanned by Android, and %s cannot access the game resources. Please try again shortly.</string>
+    <string name="IDS_SD_STARTUP_NO_SD_CARD">"You don't have an SD card in your device, but %s expects the game resources to be there. Please put your SD card back in before trying again, or start over and download the resources somewhere else."</string>
+    <string name="IDS_SD_STARTUP_WRONG_SD_CARD">You have changed your SD card, and %s cannot find the game resources. Please switch SD cards before trying again, or start over and download the resources somewhere else.</string>
+    <string name="IDS_SD_STARTUP_GENERIC_UNMOUNTED">Your SD card is either not mounted or unreadable, and %s cannot find the game resources. Please correct the issue before trying again, or start over and download the resources somewhere else.</string>
+    <string name="IDS_SD_STARTUP_RETRY">Retry</string>
+    <string name="IDS_SD_STARTUP_OVERRIDE">Download Again</string>
+    <string name="IDS_SD_STARTUP_QUIT">Quit</string>
+    <string name="IDS_DOWNLOAD_PROMPT_TOOLTIP">To ensure that your download uses a Wi-Fi network, go into Android Settings, then Wireless &amp; networks. Turn on Airplane mode, followed by Wi-Fi, to exclusively use Wi-Fi.</string>
+    <string name="IDS_DOWNLOAD_PROMPT_TOOLTIP_16">NOTE: The only way to completely ensure that your download uses Wi-Fi is to remove your SIM card. Android OS 2.0 and higher allow you to turn on Wi-Fi when Airplane mode is on.</string>
+    <string name="IDS_DOWNLOADING_TOOLTIP_ADDENDUM">(NOTE: Your download will stop if you do this, but it can typically be resumed)</string>
+    <string name="IDS_TOOLTIP_TITLE">Information</string>
+    <string name="IDS_DOWNLOAD_WIFI_POPUP_TITLE">Please Consider Wi-Fi</string>
+    <string name="IDS_DOWNLOAD_WIFI_WARNING">"We highly recommend that you use Wi-Fi to download the resources. Wi-Fi is typically faster, and doesn't use up your monthly data (if applicable). To use Wi-Fi, go into Android Settings, then Wireless networks, and then check the box by Wi-Fi. Select a familiar Wi-Fi network from the list below."</string>
+    <string name="IDS_PREPARING">Preparing...</string>
+    <string name="IDS_ADS_TAPPING_IS_SAFE">Tapping the advertisement will not interrupt your download.</string>
+    <string name="IDS_SPECIAL_DOWNLOADING_PART_1">"Downloading Additional Resources
+Progress: %s..."</string>
+    <string name="IDS_SPECIAL_DOWNLOADING_PART_2">"
+File %s..."</string>
+    <string name="IDS_SPECIAL_DOWNLOAD_FAILED_CHECK">Not all required resources found.</string>
+    <string name="IDS_SPECIAL_FILLER_FILENAME">please wait</string>
+    <string name="IDS_BACKUP_DISCLOSURE" formatted="false">"%s automatically backs up some small game data files if you have a writable SD card inserted, and will restore them if you uninstall and reinstall the game. %s will only ever write to this location on your SD card:
+%s"</string>
+    <string name="IDS_RESTORE_OCCURED">Your save files from a previous %s install, free version, or demo have been restored.</string>
+    <string name="IDS_NOTIFICATION_DOWNLOAD_SUCCESS_TICKER">Your resource pack download is complete. Switch over to start playing the game.</string>
+    <string name="IDS_NOTIFICATION_DOWNLOAD_FAILURE_TICKER">Your resource pack download failed. Please check your connection and try again.</string>
+    <string name="IDS_NOTIFICATION_DOWNLOAD_SUCCESS_SHORT">Resource download complete.</string>
+    <string name="IDS_NOTIFICATION_DOWNLOAD_FAILURE_SHORT">Resource download failed.</string>
+</resources>
