@@ -1,13 +1,15 @@
+#define _GNU_SOURCE
 #include "hle_internal.h"
+#include "gunbros/hle/hle_libc.h"
 #include <time.h>
 #include <sys/time.h>
 #include <math.h>
 #include <stdlib.h>
 
 /* ---------------- Time Operations ---------------- */
-static void h_clock(hle_t *c) { c->r0 = (uint32_t)clock(); }
+void h_clock(hle_t *c) { c->r0 = (uint32_t)clock(); }
 
-static void h_time(hle_t *c) {
+void h_time(hle_t *c) {
     time_t t = time(NULL);
     if (c->r0) {
         uint32_t *tp = (uint32_t*)guest_ptr(c->r0, 4);
@@ -16,7 +18,7 @@ static void h_time(hle_t *c) {
     c->r0 = (uint32_t)t;
 }
 
-static void h_gettimeofday(hle_t *c) {
+void h_gettimeofday(hle_t *c) {
     struct timeval tv;
     gettimeofday(&tv, NULL);
     if (c->r0) {
@@ -29,7 +31,7 @@ static void h_gettimeofday(hle_t *c) {
     c->r0 = 0;
 }
 
-static void h_clock_gettime(hle_t *c) {
+void h_clock_gettime(hle_t *c) {
     struct timespec ts;
     int res = clock_gettime((clockid_t)c->r0, &ts);
     if (c->r1 && res == 0) {
@@ -42,7 +44,7 @@ static void h_clock_gettime(hle_t *c) {
     c->r0 = (uint32_t)res;
 }
 
-static void h_difftime(hle_t *c) {
+void h_difftime(hle_t *c) {
     hle_retdouble(c, difftime((time_t)(int32_t)c->r0, (time_t)(int32_t)c->r1));
 }
 
@@ -73,7 +75,7 @@ static uint32_t tm_static(void) {
     return s_tm_static;
 }
 
-static void h_localtime(hle_t *c) {
+void h_localtime(hle_t *c) {
     const int32_t *tp = guest_ptr(c->r0, 4);
     if (!tp) { c->r0 = 0; return; }
     time_t t = (time_t)*tp; struct tm tv;
@@ -81,7 +83,7 @@ static void h_localtime(hle_t *c) {
     uint32_t g = tm_static(); tm_to_guest(&tv, g, true); c->r0 = g;
 }
 
-static void h_gmtime(hle_t *c) {
+void h_gmtime(hle_t *c) {
     const int32_t *tp = guest_ptr(c->r0, 4);
     if (!tp) { c->r0 = 0; return; }
     time_t t = (time_t)*tp; struct tm tv;
@@ -89,7 +91,7 @@ static void h_gmtime(hle_t *c) {
     uint32_t g = tm_static(); tm_to_guest(&tv, g, true); c->r0 = g;
 }
 
-static void h_mktime(hle_t *c) {
+void h_mktime(hle_t *c) {
     struct tm t;
     if (!guest_to_tm(c->r0, &t)) { c->r0 = (uint32_t)-1; return; }
     time_t r = mktime(&t);
@@ -97,7 +99,7 @@ static void h_mktime(hle_t *c) {
     c->r0 = (uint32_t)r;
 }
 
-static void h_ctime(hle_t *c) {
+void h_ctime(hle_t *c) {
     const int32_t *tp = guest_ptr(c->r0, 4);
     if (!tp) { c->r0 = 0; return; }
     time_t t = (time_t)*tp; char buf[32];

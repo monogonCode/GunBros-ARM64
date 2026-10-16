@@ -1,4 +1,5 @@
 #include "hle_internal.h"
+#include "gunbros/hle/hle_libc.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -131,26 +132,122 @@ static void h_wcslen(hle_t *c) {
 }
 
 /* ---------------- String Formatting & Conversion ---------------- */
-static void h_sprintf(hle_t *c) {
+
+static uint32_t get_guest_vararg(uint32_t *reg_args, int reg_count, uint32_t sp, int *arg_idx) {
+    int idx = *arg_idx;
+    (*arg_idx)++;
+    if (idx < reg_count && reg_args != NULL) {
+        return reg_args[idx];
+    } else {
+        uint32_t val = 0;
+        int stack_offset = (reg_args != NULL) ? (idx - reg_count) * 4 : idx * 4;
+        guest_mem_read(sp + stack_offset, &val, 4);
+        return val;
+    }
+}
+
+int safe_guest_snprintf(char *dst, size_t max_len, const char *fmt, uint32_t *reg_args, int reg_count, uint32_t sp) {
+    if (!dst || max_len == 0) return 0;
+    if (!fmt) { dst[0] = '\0'; return 0; }
+
+    char temp[1024];
+    size_t out_len = 0;
+    int arg_idx = 0;
+    const char *p = fmt;
+
+    while (*p != '\0' && out_len + 1 < sizeof(temp)) {
+        if (*p != '%') {
+            temp[out_len++] = *p++;
+            continue;
+        }
+
+        p++; // skip '%'
+        if (*p == '%') {
+            temp[out_len++] = '%';
+            p++;
+            continue;
+        }
+
+        char spec[32];
+        int s_idx = 0;
+        spec[s_idx++] = '%';
+        while (*p && strchr("0123456789.-+ #lhjzt", *p) && s_idx < 30) {
+            spec[s_idx++] = *p++;
+        }
+        char type = *p ? *p++ : '\0';
+        spec[s_idx++] = type;
+        spec[s_idx] = '\0';
+
+        char formatted[256];
+        formatted[0] = '\0';
+
+        if (type == 's') {
+            uint32_t guest_ptr_val = get_guest_vararg(reg_args, reg_count, sp, &arg_idx);
+            const char *str = (const char*)guest_to_host(guest_ptr_val);
+            if (!str) str = "";
+            snprintf(formatted, sizeof(formatted), spec, str);
+        } else if (type == 'd' || type == 'i') {
+            uint32_t val = get_guest_vararg(reg_args, reg_count, sp, &arg_idx);
+            snprintf(formatted, sizeof(formatted), spec, (int32_t)val);
+        } else if (type == 'u' || type == 'x' || type == 'X' || type == 'p') {
+            uint32_t val = get_guest_vararg(reg_args, reg_count, sp, &arg_idx);
+            snprintf(formatted, sizeof(formatted), spec, val);
+        } else if (type == 'c') {
+            uint32_t val = get_guest_vararg(reg_args, reg_count, sp, &arg_idx);
+            snprintf(formatted, sizeof(formatted), spec, (char)val);
+        } else if (type == 'f' || type == 'g' || type == 'e') {
+            if (arg_idx & 1) arg_idx++;
+            uint32_t lo = get_guest_vararg(reg_args, reg_count, sp, &arg_idx);
+            uint32_t hi = get_guest_vararg(reg_args, reg_count, sp, &arg_idx);
+            uint64_t dval = ((uint64_t)hi << 32) | lo;
+            double d;
+            memcpy(&d, &dval, 8);
+            snprintf(formatted, sizeof(formatted), spec, d);
+        } else {
+            snprintf(formatted, sizeof(formatted), "%s", spec);
+        }
+
+        size_t flen = strlen(formatted);
+        if (out_len + flen < sizeof(temp)) {
+            memcpy(temp + out_len, formatted, flen);
+            out_len += flen;
+        } else {
+            size_t avail = sizeof(temp) - 1 - out_len;
+            memcpy(temp + out_len, formatted, avail);
+            out_len += avail;
+            break;
+        }
+    }
+
+    temp[out_len] = '\0';
+    if (out_len >= max_len) {
+        memcpy(dst, temp, max_len - 1);
+        dst[max_len - 1] = '\0';
+    } else {
+        memcpy(dst, temp, out_len + 1);
+    }
+    return (int)out_len;
+}
+void h_sprintf(hle_t *c) {
     char *dst = (char*)guest_to_host(c->r0);
     const char *fmt = (const char*)guest_to_host(c->r1);
     uint32_t reg_args[2] = { c->r2, c->r3 };
     c->r0 = (uint32_t)safe_guest_snprintf(dst, 1024, fmt, reg_args, 2, c->sp);
 }
-static void h_snprintf(hle_t *c) {
+void h_snprintf(hle_t *c) {
     char *dst = (char*)guest_to_host(c->r0);
     uint32_t max_len = c->r1;
     const char *fmt = (const char*)guest_to_host(c->r2);
     uint32_t reg_args[1] = { c->r3 };
     c->r0 = (uint32_t)safe_guest_snprintf(dst, max_len, fmt, reg_args, 1, c->sp);
 }
-static void h_vsprintf(hle_t *c) {
+void h_vsprintf(hle_t *c) {
     char *dst = (char*)guest_to_host(c->r0);
     const char *fmt = (const char*)guest_to_host(c->r1);
     uint32_t va_sp = c->r2;
     c->r0 = (uint32_t)safe_guest_snprintf(dst, 1024, fmt, NULL, 0, va_sp);
 }
-static void h_vsnprintf(hle_t *c) {
+void h_vsnprintf(hle_t *c) {
     char *dst = (char*)guest_to_host(c->r0);
     uint32_t max_len = c->r1;
     const char *fmt = (const char*)guest_to_host(c->r2);
@@ -240,7 +337,7 @@ static int normalize_scanf_format(const char *fmt, char *out_fmt, size_t out_sz,
     return 0;
 }
 
-static void h_sscanf(hle_t *c) {
+void h_sscanf(hle_t *c) {
     const char *str = (const char*)guest_to_host(c->r0);
     const char *fmt = (const char*)guest_to_host(c->r1);
     if (!str || !fmt) {

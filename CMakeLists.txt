@@ -166,4 +166,15 @@ if(BUILD_TESTING)
     add_executable(test_guest_memory tests/emulator/test_guest_memory.c src/emulator/guest_memory.c)
     target_include_directories(test_guest_memory PRIVATE include)
     add_test(NAME test_guest_memory COMMAND test_guest_memory)
+
+    add_executable(test_hle_libc
+        tests/test_hle_libc.c
+        src/hle/libc_string.c
+        src/hle/libc_time.c
+        src/hle/libc_stdio.c
+        src/emulator/guest_memory.c
+    )
+    target_include_directories(test_hle_libc PRIVATE include src/hle)
+    target_link_libraries(test_hle_libc PRIVATE gunbros_fs_core m)
+    add_test(NAME test_hle_libc COMMAND test_hle_libc)
 endif()
