@@ -155,9 +155,12 @@ if(BUILD_TESTING)
     target_link_libraries(test_file_operations PRIVATE gunbros_fs_core)
     add_test(NAME test_file_operations COMMAND test_file_operations)
 
-    add_executable(test_persistence tests/filesystem/test_persistence.c)
-    target_link_libraries(test_persistence PRIVATE gunbros_fs_core)
-    add_test(NAME test_persistence COMMAND test_persistence)
+    add_executable(test_host_io_persistence tests/filesystem/test_host_io_persistence.c)
+    target_link_libraries(test_host_io_persistence PRIVATE gunbros_fs_core)
+    add_test(NAME test_host_io_persistence COMMAND test_host_io_persistence)
+
+    # Target alias for backwards compatibility
+    add_custom_target(test_persistence DEPENDS test_host_io_persistence)
 
     add_executable(test_pcm_ring tests/platform/test_pcm_ring.c src/platform/pcm_ring.c)
     target_include_directories(test_pcm_ring PRIVATE include)
@@ -177,4 +180,15 @@ if(BUILD_TESTING)
     target_include_directories(test_hle_libc PRIVATE include src/hle)
     target_link_libraries(test_hle_libc PRIVATE gunbros_fs_core m)
     add_test(NAME test_hle_libc COMMAND test_hle_libc)
+
+    add_executable(golden_save_runner
+        tests/golden/golden_save_runner.c
+        src/hle/libc_string.c
+        src/hle/libc_time.c
+        src/hle/libc_stdio.c
+        src/emulator/guest_memory.c
+    )
+    target_include_directories(golden_save_runner PRIVATE include src/hle)
+    target_link_libraries(golden_save_runner PRIVATE gunbros_fs_core m)
+    add_test(NAME golden_save_runner COMMAND golden_save_runner)
 endif()
