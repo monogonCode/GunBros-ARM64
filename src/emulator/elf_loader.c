@@ -3,6 +3,7 @@
 #include "gunbros/emulator/dynarmic_backend.h"
 #include "gunbros/emulator/hle_dispatcher.h"
 #include "gunbros/compatibility/game_patches.h"
+#include "gunbros/compatibility/guest_symbols.h"
 #include "gunbros/compatibility/jni_virtual_machine.h"
 #include <string.h>
 
@@ -219,18 +220,18 @@ bool elf_loader_load(const uint8_t *buf, size_t buf_len, const char *game_dir) {
     // Initialize virtual JVM and JNIEnv
     jvm_virtual_init(heap_base, stubs_base, game_dir);
 
-    // Set g_javaVM at 0x004c95b8
-    *(uint32_t*)(code_base + 0x004c95b8) = GUEST_JVM_OBJ;
+    // Set g_javaVM
+    *(uint32_t*)(code_base + GUEST_ADDR_JAVA_VM) = GUEST_JVM_OBJ;
 
-    // Set GOT entry for g_callbackJNI at 0x004c4a94
-    *(uint32_t*)(code_base + 0x004c4a94) = 0x004c95bc;
+    // Set GOT entry for g_callbackJNI
+    *(uint32_t*)(code_base + GUEST_ADDR_GOT_CALLBACK_JNI) = GUEST_ADDR_CALLBACK_JNI;
 
     // Dynamic relocations
     apply_relocations(buf, code_base);
 
     // Initialize application file paths for CFileMgr_Android
     const char *actual_game_dir = game_dir ? game_dir : "/sdcard/Android/data/com.glu.android.gunbros_free/files/";
-    strncpy((char*)(code_base + 0x004c91a4), actual_game_dir, 1023); // sm_resFilePath
+    strncpy((char*)(code_base + GUEST_ADDR_RES_FILE_PATH), actual_game_dir, 1023); // sm_resFilePath
 
     uint16_t *w_game_dir = (uint16_t*)(heap_base + 0x5000);
     int gdir_len = (int)strlen(actual_game_dir);
@@ -246,25 +247,25 @@ bool elf_loader_load(const uint8_t *buf, size_t buf_len, const char *game_dir) {
     // before concatenating g_externalPath or g_internalPath.
 
     // Initialize runtime storage paths for CFileMgr_Android
-    *(uint32_t*)(code_base + 0x004c9658) = w_game_dir_guest; // g_externalPath
-    *(uint32_t*)(code_base + 0x004c964c) = (uint32_t)gdir_len; // g_externalPathLength
-    *(uint32_t*)(code_base + 0x004c9654) = w_game_dir_guest; // g_internalPath
-    *(uint32_t*)(code_base + 0x004c9648) = (uint32_t)gdir_len; // g_internalPathLength
+    *(uint32_t*)(code_base + GUEST_ADDR_EXTERNAL_PATH) = w_game_dir_guest; // g_externalPath
+    *(uint32_t*)(code_base + GUEST_ADDR_EXTERNAL_PATH_LEN) = (uint32_t)gdir_len; // g_externalPathLength
+    *(uint32_t*)(code_base + GUEST_ADDR_INTERNAL_PATH) = w_game_dir_guest; // g_internalPath
+    *(uint32_t*)(code_base + GUEST_ADDR_INTERNAL_PATH_LEN) = (uint32_t)gdir_len; // g_internalPathLength
 
     // Initialize g_separator ("/") in heap
     uint16_t *w_sep = (uint16_t*)(heap_base + 0x5f00);
     w_sep[0] = (uint16_t)'/';
     w_sep[1] = 0;
-    *(uint32_t*)(code_base + 0x004c965c) = 0x60005f00; // g_separator
-    *(uint32_t*)(code_base + 0x004c9650) = 1; // g_separatorLength
+    *(uint32_t*)(code_base + GUEST_ADDR_SEPARATOR) = 0x60005f00; // g_separator
+    *(uint32_t*)(code_base + GUEST_ADDR_SEPARATOR_LEN) = 1; // g_separatorLength
 
     LOGI("File paths initialized: g_externalPath='%s' (len=%d), g_separator='/'",
          actual_game_dir, gdir_len);
 
     // GOT entries point to pointer variables in commpage:
-    *(uint32_t*)(code_base + 0x004c50c0) = 0xffff1800; // _ctype_
-    *(uint32_t*)(code_base + 0x004c4ce8) = 0xffff1804; // _tolower_tab_
-    *(uint32_t*)(code_base + 0x004c4a2c) = 0xffff1808; // _toupper_tab_
+    *(uint32_t*)(code_base + GUEST_ADDR_GOT_CTYPE) = 0xffff1800; // _ctype_
+    *(uint32_t*)(code_base + GUEST_ADDR_GOT_TOLOWER) = 0xffff1804; // _tolower_tab_
+    *(uint32_t*)(code_base + GUEST_ADDR_GOT_TOUPPER) = 0xffff1808; // _toupper_tab_
 
     // Apply engine patches
     game_patches_apply_all(code_base);
@@ -275,8 +276,8 @@ bool elf_loader_load(const uint8_t *buf, size_t buf_len, const char *game_dir) {
 
     // Execute .init_array constructors
     LOGI("Executing .init_array constructors...");
-    uint32_t init_array_addr = 0x0049406c;
-    int init_count = 51;
+    uint32_t init_array_addr = GUEST_ADDR_INIT_ARRAY;
+    int init_count = GUEST_INIT_ARRAY_COUNT;
     for (int i = 0; i < init_count; i++) {
         uint32_t fn = *(uint32_t*)(code_base + init_array_addr + i * 4);
         if (fn != 0 && fn != 0xffffffff) {
@@ -294,7 +295,7 @@ bool elf_loader_load(const uint8_t *buf, size_t buf_len, const char *game_dir) {
     LOGI("Calling guest JNI_OnLoad at 0x161cac...");
     prepare_call_arm(GUEST_JVM_OBJ);
     dynarmic_backend_set_reg(1, 0); // r1 = reserved
-    run_result_t err = run_guest(0x00161cac, "JNI_OnLoad");
+    run_result_t err = run_guest(GUEST_FN_JNI_ON_LOAD, "JNI_OnLoad");
     uint32_t jni_ver = dynarmic_backend_get_reg(0);
     LOGI("Guest JNI_OnLoad returned res=%d, jni_ver=0x%x", err, jni_ver);
 

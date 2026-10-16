@@ -5,6 +5,7 @@
 #include "gunbros/emulator/elf_loader.h"
 #include "gunbros/filesystem/path_mapper.h"
 #include "gunbros/compatibility/jni_virtual_machine.h"
+#include "gunbros/compatibility/guest_symbols.h"
 #include "gunbros/platform/android_window.h"
 #include "gunbros/platform/android_audio.h"
 #include "gunbros/platform/jni_env_helper.h"
@@ -88,8 +89,8 @@ void bridge_init(JNIEnv *env, jobject context) {
         window_get_dimensions(&gw, &gh);
         uint32_t sw = (uint32_t)gw;
         uint32_t sh = (uint32_t)gh;
-        guest_mem_write(0x004c9688, &sw, 4);
-        guest_mem_write(0x004c968c, &sh, 4);
+        guest_mem_write(GUEST_ADDR_SCREEN_WIDTH, &sw, 4);
+        guest_mem_write(GUEST_ADDR_SCREEN_HEIGHT, &sh, 4);
         LOGI("Initialized guest g_screenWidth=%u, g_screenHeight=%u", sw, sh);
     }
 }
@@ -115,7 +116,12 @@ void bridge_touch_push(int type, int x, int y, int pid) {
 }
 
 static void touch_dispatch(int type, int x, int y, int pid) {
-    static const uint32_t entry[4] = {0x00162440, 0x00162418, 0x001623f0, 0x001623c8};
+    static const uint32_t entry[4] = {
+        GUEST_FN_TOUCH_DOWN,
+        GUEST_FN_TOUCH_MOVE,
+        GUEST_FN_TOUCH_UP,
+        GUEST_FN_TOUCH_CANCEL
+    };
     prepare_call_arm(0);
     dynarmic_backend_set_reg(2, s_capplet_inst);
     dynarmic_backend_set_reg(3, (uint32_t)x);
@@ -129,19 +135,19 @@ static void touch_dispatch(int type, int x, int y, int pid) {
 
     if (type == 2) { // TouchEnded: Character selection support in PLAYER_SELECT state
         uint32_t app_ptr = 0;
-        guest_mem_read(0x004c909c, &app_ptr, 4);
+        guest_mem_read(GUEST_ADDR_APP_PTR, &app_ptr, 4);
         if (app_ptr != 0) {
             uint32_t gunbros = 0;
-            guest_mem_read(app_ptr + 108, &gunbros, 4);
+            guest_mem_read(app_ptr + GUEST_OFF_APP_GUNBROS, &gunbros, 4);
             if (gunbros != 0) {
                 uint32_t gstate = 0;
-                guest_mem_read(gunbros + 320, &gstate, 4);
+                guest_mem_read(gunbros + GUEST_OFF_GB_GSTATE, &gstate, 4);
                 if (gstate == 5) {
                     uint32_t menu_sys = 0;
-                    guest_mem_read(gunbros + 4, &menu_sys, 4);
+                    guest_mem_read(gunbros + GUEST_OFF_GB_MENUSYS, &menu_sys, 4);
                     if (menu_sys != 0) {
                         uint32_t top_menu = 0;
-                        guest_mem_read(menu_sys + 256, &top_menu, 4);
+                        guest_mem_read(menu_sys + GUEST_OFF_MENU_TOP, &top_menu, 4);
                         if (top_menu != 0) {
                             int gw = 1024, gh = 640;
                             window_get_dimensions(&gw, &gh);
@@ -150,7 +156,7 @@ static void touch_dispatch(int type, int x, int y, int pid) {
                                  sel == 0 ? "Percy Gun" : "Francis Gun", sel, top_menu);
                             prepare_call_arm(top_menu);
                             dynarmic_backend_set_reg(1, sel);
-                            run_guest(0x0031f1bc, "select_char");
+                            run_guest(GUEST_FN_SELECT_CHAR, "select_char");
                         }
                     }
                 }
@@ -178,14 +184,14 @@ void bridge_touch_drain(void) {
 size_t bridge_audio_mixer(uint8_t *out, size_t len, void *user_data) {
     (void)user_data;
     if (!s_capplet_inst || !guest_memory_get_heap() || !audio_is_engine_ready()) return 0;
-    uint32_t guest_buf = 0x60080000;
+    uint32_t guest_buf = GUEST_ADDR_AUDIO_PCM_BUF;
     uint32_t guest_req = (uint32_t)len;
     uint8_t *host_pcm = guest_memory_get_heap() + 0x80000;
     memset(host_pcm, 0, len);
     prepare_call_arm(s_capplet_inst);
     dynarmic_backend_set_reg(1, guest_buf);
     dynarmic_backend_set_reg(2, guest_req);
-    run_guest(0x00156ee0, "feedPCMMediaPlayer");
+    run_guest(GUEST_FN_FEED_PCM, "feedPCMMediaPlayer");
     memcpy(out, host_pcm, len);
     return len;
 }
@@ -216,7 +222,7 @@ void bridge_on_draw_frame(JNIEnv *env, jobject thiz, jint id, jlong time, jboole
             dynarmic_backend_set_reg(2, flag);
 
             uint64_t guest_start = bridge_monotonic_ns();
-            run_guest(0x00156b10, "frame");
+            run_guest(GUEST_FN_ON_DRAW_FRAME, "frame");
             uint64_t guest_elapsed = bridge_monotonic_ns() - guest_start;
             uint64_t lock_wait = lock_acquired - lock_wait_start;
 
@@ -228,19 +234,19 @@ void bridge_on_draw_frame(JNIEnv *env, jobject thiz, jint id, jlong time, jboole
             // Periodic diagnostics
             if (s_frame_count <= 10 || s_frame_count % 60 == 0) {
                 uint32_t app_ptr = 0;
-                guest_mem_read(0x004c909c, &app_ptr, 4);
+                guest_mem_read(GUEST_ADDR_APP_PTR, &app_ptr, 4);
                 if (app_ptr != 0) {
                     uint32_t res_loader = 0, gunbros = 0;
-                    guest_mem_read(app_ptr + 96, &res_loader, 4);
-                    guest_mem_read(app_ptr + 108, &gunbros, 4);
+                    guest_mem_read(app_ptr + GUEST_OFF_APP_RES_LOADER, &res_loader, 4);
+                    guest_mem_read(app_ptr + GUEST_OFF_APP_GUNBROS, &gunbros, 4);
                     uint16_t res_tot = 0, res_cur = 0;
                     if (res_loader) {
-                        guest_mem_read(res_loader + 12, &res_tot, 2);
-                        guest_mem_read(res_loader + 14, &res_cur, 2);
+                        guest_mem_read(res_loader + GUEST_OFF_RESLOADER_TOTAL, &res_tot, 2);
+                        guest_mem_read(res_loader + GUEST_OFF_RESLOADER_CURRENT, &res_cur, 2);
                     }
                     uint32_t gstate = 0;
                     if (gunbros) {
-                        guest_mem_read(gunbros + 320, &gstate, 4);
+                        guest_mem_read(gunbros + GUEST_OFF_GB_GSTATE, &gstate, 4);
                     }
                     LOGI("STATE [#%d]: app=0x%x res=%d/%d gb=0x%x gstate=%d",
                          s_frame_count, app_ptr, res_cur, res_tot, gunbros, gstate);
@@ -285,14 +291,14 @@ jint bridge_on_create(JNIEnv *env, jobject thiz, jbyteArray array, jobject callb
         dynarmic_backend_set_reg(3, dummy_cb);
 
         LOGI("Calling original onCreate at 0x162638...");
-        run_result_t err = run_guest(0x00162638, "onCreate");
+        run_result_t err = run_guest(GUEST_FN_ON_CREATE, "onCreate");
         uint32_t ret_capplet = dynarmic_backend_get_reg(0);
         LOGI("Original onCreate returned res=%d, capplet=0x%x", err, ret_capplet);
 
         if (err == RUN_OK && ret_capplet != 0) {
             s_capplet_inst = ret_capplet;
         } else {
-            s_capplet_inst = ret_capplet ? ret_capplet : 0x60010160;
+            s_capplet_inst = ret_capplet ? ret_capplet : GUEST_ADDR_FALLBACK_CAPPLET;
         }
         pthread_mutex_unlock(&g_emu_mutex);
     }
@@ -306,7 +312,7 @@ void bridge_on_surface_created(jint id) {
     if (dynarmic_backend_is_active() && s_capplet_inst != 0) {
         pthread_mutex_lock(&g_emu_mutex);
         prepare_call_arm(s_capplet_inst);
-        run_guest(0x00156718, "surfaceCreated");
+        run_guest(GUEST_FN_SURFACE_CREATED, "surfaceCreated");
         pthread_mutex_unlock(&g_emu_mutex);
     }
 }
@@ -323,7 +329,7 @@ void bridge_on_surface_changed(jint id, jint format, jint w, jint h) {
         dynarmic_backend_set_reg(1, (uint32_t)format);
         dynarmic_backend_set_reg(2, (uint32_t)gw);
         dynarmic_backend_set_reg(3, (uint32_t)gh);
-        run_guest(0x001568d8, "surfaceChanged");
+        run_guest(GUEST_FN_SURFACE_CHANGED, "surfaceChanged");
         pthread_mutex_unlock(&g_emu_mutex);
     }
 }
@@ -334,7 +340,7 @@ void bridge_on_gl_surface_created(jint id) {
     if (dynarmic_backend_is_active() && s_capplet_inst != 0) {
         pthread_mutex_lock(&g_emu_mutex);
         prepare_call_arm(s_capplet_inst);
-        run_guest(0x0015676c, "onSurfaceCreated");
+        run_guest(GUEST_FN_GL_SURFACE_CREATED, "onSurfaceCreated");
         pthread_mutex_unlock(&g_emu_mutex);
     }
 }
@@ -350,7 +356,7 @@ void bridge_on_gl_surface_changed(jint id, jint w, jint h) {
         prepare_call_arm(s_capplet_inst);
         dynarmic_backend_set_reg(1, (uint32_t)gw);
         dynarmic_backend_set_reg(2, (uint32_t)gh);
-        run_guest(0x00156750, "onSurfaceChanged");
+        run_guest(GUEST_FN_GL_SURFACE_CHANGED, "onSurfaceChanged");
         pthread_mutex_unlock(&g_emu_mutex);
     }
 }
@@ -360,7 +366,7 @@ void bridge_on_surface_destroyed(jint id) {
     if (dynarmic_backend_is_active() && s_capplet_inst != 0) {
         pthread_mutex_lock(&g_emu_mutex);
         prepare_call_arm(s_capplet_inst);
-        run_guest(0x0015671c, "surfaceDestroyed");
+        run_guest(GUEST_FN_SURFACE_DESTROYED, "surfaceDestroyed");
         pthread_mutex_unlock(&g_emu_mutex);
     }
 }
@@ -370,7 +376,7 @@ void bridge_on_destroy(jint id) {
     if (dynarmic_backend_is_active() && s_capplet_inst != 0) {
         pthread_mutex_lock(&g_emu_mutex);
         prepare_call_arm(s_capplet_inst);
-        run_guest(0x001569bc, "onDestroy");
+        run_guest(GUEST_FN_ON_DESTROY, "onDestroy");
         pthread_mutex_unlock(&g_emu_mutex);
     }
 }
@@ -380,9 +386,9 @@ void bridge_on_pause(jint id) {
     if (dynarmic_backend_is_active() && s_capplet_inst != 0) {
         pthread_mutex_lock(&g_emu_mutex);
         prepare_call_arm(s_capplet_inst);
-        run_guest(0x001569d4, "onPause");
+        run_guest(GUEST_FN_ON_PAUSE, "onPause");
         prepare_call_arm(s_capplet_inst);
-        run_guest(0x00156a40, "processEvents");
+        run_guest(GUEST_FN_PROCESS_EVENTS, "processEvents");
         pthread_mutex_unlock(&g_emu_mutex);
     }
 }
@@ -392,7 +398,7 @@ void bridge_on_resume(jint id) {
     if (dynarmic_backend_is_active() && s_capplet_inst != 0) {
         pthread_mutex_lock(&g_emu_mutex);
         prepare_call_arm(s_capplet_inst);
-        run_guest(0x00156614, "onResume");
+        run_guest(GUEST_FN_ON_RESUME, "onResume");
         pthread_mutex_unlock(&g_emu_mutex);
     }
 }
@@ -402,7 +408,7 @@ void bridge_on_start(jint id) {
     if (dynarmic_backend_is_active() && s_capplet_inst != 0) {
         pthread_mutex_lock(&g_emu_mutex);
         prepare_call_arm(s_capplet_inst);
-        run_guest(0x00156610, "onStart");
+        run_guest(GUEST_FN_ON_START, "onStart");
         pthread_mutex_unlock(&g_emu_mutex);
     }
 }
@@ -412,9 +418,9 @@ void bridge_on_stop(jint id) {
     if (dynarmic_backend_is_active() && s_capplet_inst != 0) {
         pthread_mutex_lock(&g_emu_mutex);
         prepare_call_arm(s_capplet_inst);
-        run_guest(0x00156620, "onStop");
+        run_guest(GUEST_FN_ON_STOP, "onStop");
         prepare_call_arm(s_capplet_inst);
-        run_guest(0x00156a40, "processEvents");
+        run_guest(GUEST_FN_PROCESS_EVENTS, "processEvents");
         pthread_mutex_unlock(&g_emu_mutex);
     }
 }
@@ -424,7 +430,7 @@ void bridge_on_restart(jint id) {
     if (dynarmic_backend_is_active() && s_capplet_inst != 0) {
         pthread_mutex_lock(&g_emu_mutex);
         prepare_call_arm(s_capplet_inst);
-        run_guest(0x00156624, "onRestart");
+        run_guest(GUEST_FN_ON_RESTART, "onRestart");
         pthread_mutex_unlock(&g_emu_mutex);
     }
 }
@@ -434,7 +440,7 @@ void bridge_on_low_memory(jint id) {
     if (dynarmic_backend_is_active() && s_capplet_inst != 0) {
         pthread_mutex_lock(&g_emu_mutex);
         prepare_call_arm(s_capplet_inst);
-        run_guest(0x001569a4, "onLowMemory");
+        run_guest(GUEST_FN_ON_LOW_MEMORY, "onLowMemory");
         pthread_mutex_unlock(&g_emu_mutex);
     }
 }
@@ -444,7 +450,7 @@ void bridge_on_orientation_changed(jint orientation) {
         pthread_mutex_lock(&g_emu_mutex);
         prepare_call_arm(s_capplet_inst);
         dynarmic_backend_set_reg(1, (uint32_t)orientation);
-        run_guest(0x00156864, "onOrientationChanged");
+        run_guest(GUEST_FN_ON_ORIENTATION_CHANGED, "onOrientationChanged");
         pthread_mutex_unlock(&g_emu_mutex);
     }
 }
