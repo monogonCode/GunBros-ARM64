@@ -5,18 +5,73 @@
 
 #define GUEST_HELPERS_OFF 0xd000u /* offset in g_host_stubs -> guest 0x8000d000 */
 
+static const game_patch_entry_t s_game_patches[] = {
+    /* CResourceLoader::LoadNext */
+    { GUEST_PATCH_RESLOADER_LOADNEXT, false, 0, 0xe1a00000, 4, "CResourceLoader::LoadNext nop" },
+
+    /* Patch A: CGun::Draw (hooks into Trampoline A) */
+    { GUEST_PATCH_GUN_DRAW,           false, 0, 0xea08eb2a, 4, "CGun::Draw trampoline branch" },
+    { GUEST_PATCH_GUN_DRAW_NOP1,      false, 0, 0xe1a00000, 4, "CGun::Draw nop1" },
+    { GUEST_PATCH_GUN_DRAW_NOP2,      false, 0, 0xe1a00000, 4, "CGun::Draw nop2" },
+
+    /* Patch B: CMesh::GetNodeAt (hooks into Trampoline B) */
+    { GUEST_PATCH_MESH_GETNODEAT,     false, 0, 0xea06e173, 4, "CMesh::GetNodeAt trampoline branch" },
+
+    /* Patch C: CMesh::GetInterpolationValues */
+    { GUEST_PATCH_MESH_GETINTERP,     false, 0, 0x9a000052, 4, "CMesh::GetInterpolationValues bls" },
+
+    /* Patch D: Multitouch support */
+    { GUEST_PATCH_MULTITOUCH_FLAG,    false, 0, 1,          1, "g_multipleTouchSupported = 1" },
+    { GUEST_PATCH_CAN_MULTITOUCH_MOV, false, 0, 0xe3a00001, 4, "CanMultipleTouch mov r0, 1" },
+    { GUEST_PATCH_CAN_MULTITOUCH_BX,  false, 0, 0xe12fff1e, 4, "CanMultipleTouch bx lr" },
+    { GUEST_PATCH_IS_MULTITOUCH_MOV,  false, 0, 0xe3a00001, 4, "IsMultipleTouchEnabled mov r0, 1" },
+    { GUEST_PATCH_IS_MULTITOUCH_BX,   false, 0, 0xe12fff1e, 4, "IsMultipleTouchEnabled bx lr" },
+
+    /* Patch E: CGameApp::OnSystemEvent (preserve pointer ID) */
+    { GUEST_PATCH_SYSTEM_EVENT_PID,   false, 0, 0xe1a00000, 4, "CGameApp::OnSystemEvent preserve pid nop" },
+
+    /* Patch F: Hardware::GetSupportedArtSetEv */
+    { GUEST_PATCH_ART_SET_MOV,        false, 0, 0xe3a00002, 4, "Hardware::GetSupportedArtSetEv mov r0, 2" },
+    { GUEST_PATCH_ART_SET_BX,         false, 0, 0xe12fff1e, 4, "Hardware::GetSupportedArtSetEv bx lr" },
+
+    /* Patch G: CResourceLoader::Init (hooks into Trampoline G) */
+    { GUEST_PATCH_RESLOADER_INIT,     false, 0, 0xea0625cb, 4, "CResourceLoader::Init trampoline branch" },
+
+    /* Patch H: CMenuNavigationBar button label / metrics offsets */
+    { GUEST_PATCH_NAV_BAR_LABEL_R10,  false, 0, 0xe3a0a007, 4, "CMenuNavigationBar label r10=7" },
+    { GUEST_PATCH_NAV_BAR_SUB_R7,     false, 0, 0xe2417007, 4, "CMenuNavigationBar label sub r7, r1, 7" },
+    { GUEST_PATCH_NAV_BAR_WARBUCKS,   false, 0, 0xe3a0100e, 4, "CMenuNavigationBar warbucks r1=14" },
+    { GUEST_PATCH_NAV_BAR_COINS,      false, 0, 0xe3a0100f, 4, "CMenuNavigationBar coins r1=15" },
+    { GUEST_PATCH_NAV_BAR_GUNBADGE,   false, 0, 0xe3a01010, 4, "CMenuNavigationBar gunbadge r1=16" },
+
+    /* Patch I: CFileMgr_Android local file operations */
+    { GUEST_PATCH_FILEMGR_LOCAL_DATA, false, 0, 0xe1a00000, 4, "CFileMgr_Android skip data: strip nop" },
+    { GUEST_PATCH_FILEMGR_LOCAL_CACHE,false, 0, 0xe1a00000, 4, "CFileMgr_Android skip cache: strip nop" },
+    { GUEST_PATCH_FILEMGR_LOCAL_TEMP, false, 0, 0xe1a00000, 4, "CFileMgr_Android skip temp: strip nop" },
+    { GUEST_PATCH_FILEMGR_MKDIR,      false, 0, 0xea000002, 4, "CFileMgr_Android MkDir branch" },
+    { GUEST_PATCH_FILEMGR_SIZE,       false, 0, 0xe1a00000, 4, "CFileMgr_Android Size nop" },
+    { GUEST_PATCH_FILEMGR_EXISTS,     false, 0, 0xea00000c, 4, "CFileMgr_Android Exists branch" },
+    { GUEST_PATCH_FILEMGR_DELETE,     false, 0, 0xea000002, 4, "CFileMgr_Android Delete branch" },
+    { GUEST_PATCH_FILEMGR_RENAME_SRC, false, 0, 0xe1a00000, 4, "CFileMgr_Android Rename src nop" },
+    { GUEST_PATCH_FILEMGR_RENAME_DST, false, 0, 0xe1a00000, 4, "CFileMgr_Android Rename dst nop" },
+
+    /* Patch J: GameSpy network polling busy loops */
+    { GUEST_PATCH_GAMESPY_GT2_THINK,  false, 0, 0xe12fff1e, 4, "gt2Think bx lr" },
+    { GUEST_PATCH_GAMESPY_PEER_THINK, false, 0, 0xe12fff1e, 4, "peerThink bx lr" },
+    { GUEST_PATCH_GAMESPY_NN_THINK,   false, 0, 0xe12fff1e, 4, "NNThink bx lr" },
+    { GUEST_PATCH_GAMESPY_GTI2_MOV,   false, 0, 0xe3a00000, 4, "gti2ConnectionThink mov r0, 0" },
+    { GUEST_PATCH_GAMESPY_GTI2_BX,    false, 0, 0xe12fff1e, 4, "gti2ConnectionThink bx lr" },
+};
+
+const game_patch_entry_t* game_patches_get_table(size_t *count) {
+    if (count) *count = sizeof(s_game_patches) / sizeof(s_game_patches[0]);
+    return s_game_patches;
+}
+
 void game_patches_apply_all(uint8_t *code_base) {
     if (!code_base) return;
 
-    // Patch: CResourceLoader::LoadNext
-    // Original: beq 0x3667a0 (0x0affffc8) -> exits without advancing when waiting for dead servers
-    // Patched: nop (0xe1a00000) -> falls through to b 0x366838, completing resource loading
-    *(uint32_t*)(code_base + GUEST_PATCH_RESLOADER_LOADNEXT) = 0xe1a00000;
-    LOGI("[PATCH] CResourceLoader::LoadNext at 0x%08x -> 0xe1a00000 (nop)", GUEST_PATCH_RESLOADER_LOADNEXT);
-
-    // Patch A: CGun::Draw Muzzle Flash Guard
-    // When m_flashMesh ([r0, #8]) is NULL or !isShooting ([r0, #232]), skip flash drawing to epilogue at 0x002b55c0.
-    // Trampoline at 0x004f0000
+    // Trampoline A: CGun::Draw Muzzle Flash Guard
     uint32_t tramp_a[7] = {
         0xe5d030e8, // ldrb r3, [r0, #232]  ; isShooting
         0xe3530000, // cmp  r3, #0
@@ -27,14 +82,8 @@ void game_patches_apply_all(uint8_t *code_base) {
         0xeaf714cf  // b    0x002b535c      ; continue flash drawing
     };
     memcpy(code_base + GUEST_PATCH_TRAMPOLINE_A, tramp_a, sizeof(tramp_a));
-    *(uint32_t*)(code_base + GUEST_PATCH_GUN_DRAW) = 0xea08eb2a; // b 0x004f0000
-    *(uint32_t*)(code_base + GUEST_PATCH_GUN_DRAW_NOP1) = 0xe1a00000; // nop
-    *(uint32_t*)(code_base + GUEST_PATCH_GUN_DRAW_NOP2) = 0xe1a00000; // nop
-    LOGI("[PATCH] CGun::Draw at 0x%08x -> trampoline at 0x%08x", GUEST_PATCH_GUN_DRAW, GUEST_PATCH_TRAMPOLINE_A);
 
-    // Patch B: CMesh::GetNodeAt NULL Guard
-    // If this == NULL (r0 == 0), return immediately without touching mesh memory.
-    // Trampoline at 0x004f0040
+    // Trampoline B: CMesh::GetNodeAt NULL Guard
     uint32_t tramp_b[5] = {
         0xe3500000, // cmp  r0, #0
         0x012fff1e, // bxeq lr
@@ -43,33 +92,8 @@ void game_patches_apply_all(uint8_t *code_base) {
         0xeaf91e87  // b    0x00337a74
     };
     memcpy(code_base + GUEST_PATCH_TRAMPOLINE_B, tramp_b, sizeof(tramp_b));
-    *(uint32_t*)(code_base + GUEST_PATCH_MESH_GETNODEAT) = 0xea06e173; // b 0x004f0040
-    LOGI("[PATCH] CMesh::GetNodeAt at 0x%08x -> trampoline at 0x%08x", GUEST_PATCH_MESH_GETNODEAT, GUEST_PATCH_TRAMPOLINE_B);
 
-    // Patch C: CMesh::GetInterpolationValues Zero-Frame Fix
-    // Original: beq 0x337a54 (0x0a000052)
-    // Patched:  bls 0x337a54 (0x9a000052) -> handles keyframeCount <= 1 (prevents underflow when 0)
-    *(uint32_t*)(code_base + GUEST_PATCH_MESH_GETINTERP) = 0x9a000052;
-    LOGI("[PATCH] CMesh::GetInterpolationValues at 0x%08x -> 0x9a000052 (bls 0x337a54)", GUEST_PATCH_MESH_GETINTERP);
-
-    // Patch D: Enable Multitouch support in engine
-    *(uint8_t*)(code_base + GUEST_PATCH_MULTITOUCH_FLAG) = 1; // g_multipleTouchSupported = 1
-    *(uint32_t*)(code_base + GUEST_PATCH_CAN_MULTITOUCH_MOV) = 0xe3a00001; // CanMultipleTouch() -> mov r0, #1
-    *(uint32_t*)(code_base + GUEST_PATCH_CAN_MULTITOUCH_BX) = 0xe12fff1e; // bx lr
-    *(uint32_t*)(code_base + GUEST_PATCH_IS_MULTITOUCH_MOV) = 0xe3a00001; // IsMultipleTouchEnabled() -> mov r0, #1
-    *(uint32_t*)(code_base + GUEST_PATCH_IS_MULTITOUCH_BX) = 0xe12fff1e; // bx lr
-    LOGI("[PATCH] Multitouch: g_multipleTouchSupported=1, CanMultipleTouch()=1, IsMultipleTouchEnabled()=1");
-
-    // Patch E: Uncap multitouch in CGameApp::OnSystemEvent by removing forced single-touch pid=0
-    *(uint32_t*)(code_base + GUEST_PATCH_SYSTEM_EVENT_PID) = 0xe1a00000; // nop (was mov r7, #0)
-    LOGI("[PATCH] CGameApp::OnSystemEvent at 0x%08x -> nop (preserve pointer ID for dual sticks)", GUEST_PATCH_SYSTEM_EVENT_PID);
-
-    // Patch F: Hardware::GetSupportedArtSetEv -> return 2 (xga)
-    *(uint32_t*)(code_base + GUEST_PATCH_ART_SET_MOV) = 0xe3a00002; // mov r0, #2
-    *(uint32_t*)(code_base + GUEST_PATCH_ART_SET_BX) = 0xe12fff1e; // bx lr
-    LOGI("[PATCH] Hardware::GetSupportedArtSetEv at 0x%08x -> return 2 (xga)", GUEST_PATCH_ART_SET_MOV);
-
-    // Patch G: CResourceLoader::Init NULL this guard
+    // Trampoline G: CResourceLoader::Init NULL this guard
     uint32_t tramp_g[5] = {
         0xe3500000, // cmp  r0, #0
         0x012fff1e, // bxeq lr
@@ -78,36 +102,39 @@ void game_patches_apply_all(uint8_t *code_base) {
         0xeaf9da2f  // b    0x00366934
     };
     memcpy(code_base + GUEST_PATCH_TRAMPOLINE_G, tramp_g, sizeof(tramp_g));
-    *(uint32_t*)(code_base + GUEST_PATCH_RESLOADER_INIT) = 0xea0625cb; // b 0x004f0060
-    LOGI("[PATCH] CResourceLoader::Init at 0x%08x -> trampoline at 0x%08x", GUEST_PATCH_RESLOADER_INIT, GUEST_PATCH_TRAMPOLINE_G);
 
-    // Patch H: Fix CMenuNavigationBar button label and meter/metric region indexing
-    *(uint32_t*)(code_base + GUEST_PATCH_NAV_BAR_LABEL_R10) = 0xe3a0a007; // mov r10, #7
-    *(uint32_t*)(code_base + GUEST_PATCH_NAV_BAR_SUB_R7) = 0xe2417007; // sub r7, r1, #7
-    *(uint32_t*)(code_base + GUEST_PATCH_NAV_BAR_WARBUCKS) = 0xe3a0100e; // mov r1, #14
-    *(uint32_t*)(code_base + GUEST_PATCH_NAV_BAR_COINS) = 0xe3a0100f; // mov r1, #15
-    *(uint32_t*)(code_base + GUEST_PATCH_NAV_BAR_GUNBADGE) = 0xe3a01010; // mov r1, #16
-    LOGI("[PATCH] CMenuNavigationBar regions: start_label=7, label_sub=7, warbucks=14, coins=15, gunbadge=16");
-
-    // Patch I: Fix CFileMgr_Android local file operations (Delete, Rename, Size, Exists, MkDir, absoluteLocalPath)
-    *(uint32_t*)(code_base + GUEST_PATCH_FILEMGR_LOCAL_DATA) = 0xe1a00000; // nop in absoluteLocalPath (skip 5-char data: strip)
-    *(uint32_t*)(code_base + GUEST_PATCH_FILEMGR_LOCAL_CACHE) = 0xe1a00000; // nop in absoluteLocalPath (skip 6-char cache: strip)
-    *(uint32_t*)(code_base + GUEST_PATCH_FILEMGR_LOCAL_TEMP) = 0xe1a00000; // nop in absoluteLocalPath (skip 5-char temp: strip)
-    *(uint32_t*)(code_base + GUEST_PATCH_FILEMGR_MKDIR) = 0xea000002; // b 0x00159ddc in MkDir
-    *(uint32_t*)(code_base + GUEST_PATCH_FILEMGR_SIZE) = 0xe1a00000; // nop in Size (always use localFileSize)
-    *(uint32_t*)(code_base + GUEST_PATCH_FILEMGR_EXISTS) = 0xea00000c; // b 0x00159f80 in Exists (always use localFileExists)
-    *(uint32_t*)(code_base + GUEST_PATCH_FILEMGR_DELETE) = 0xea000002; // b 0x0015a28c in Delete (bypass read-only guard)
-    *(uint32_t*)(code_base + GUEST_PATCH_FILEMGR_RENAME_SRC) = 0xe1a00000; // nop in Rename (bypass read-only guard for src)
-    *(uint32_t*)(code_base + GUEST_PATCH_FILEMGR_RENAME_DST) = 0xe1a00000; // nop in Rename (bypass read-only guard for dst)
-    LOGI("[PATCH] CFileMgr_Android local file operations (Delete, Rename, Size, Exists, MkDir, absoluteLocalPath)");
-
-    // Patch J: Disable dead GameSpy network polling busy-loops (gt2Think, peerThink, NNThink, gti2ConnectionThink)
-    *(uint32_t*)(code_base + GUEST_PATCH_GAMESPY_GT2_THINK) = 0xe12fff1e; // gt2Think -> bx lr
-    *(uint32_t*)(code_base + GUEST_PATCH_GAMESPY_PEER_THINK) = 0xe12fff1e; // peerThink -> bx lr
-    *(uint32_t*)(code_base + GUEST_PATCH_GAMESPY_NN_THINK) = 0xe12fff1e; // NNThink -> bx lr
-    *(uint32_t*)(code_base + GUEST_PATCH_GAMESPY_GTI2_MOV) = 0xe3a00000; // gti2ConnectionThink -> mov r0, #0
-    *(uint32_t*)(code_base + GUEST_PATCH_GAMESPY_GTI2_BX) = 0xe12fff1e; // bx lr
-    LOGI("[PATCH] Disabled dead GameSpy network polling busy-loops (gt2Think, peerThink, NNThink, gti2ConnectionThink)");
+    // Apply patch table with verification and BRIDGE_DEBUG capture
+    size_t num_patches = sizeof(s_game_patches) / sizeof(s_game_patches[0]);
+    for (size_t i = 0; i < num_patches; i++) {
+        const game_patch_entry_t *p = &s_game_patches[i];
+        if (p->size == 1) {
+            uint8_t actual_old = *(uint8_t*)(code_base + p->addr);
+#ifdef BRIDGE_DEBUG
+            LOGI("[PATCH:CAPTURE] %s at 0x%08x: actual_old=0x%02x (new=0x%02x)",
+                 p->name, p->addr, actual_old, (uint8_t)p->new_value);
+#endif
+            if (p->check_expected && actual_old != (uint8_t)p->expected_old) {
+                LOGE("[PATCH:MISMATCH] '%s' at 0x%08x: expected 0x%02x, found 0x%02x. Patch aborted!",
+                     p->name, p->addr, (uint8_t)p->expected_old, actual_old);
+                continue;
+            }
+            *(uint8_t*)(code_base + p->addr) = (uint8_t)p->new_value;
+            LOGI("[PATCH] %s at 0x%08x -> 0x%02x", p->name, p->addr, (uint8_t)p->new_value);
+        } else {
+            uint32_t actual_old = *(uint32_t*)(code_base + p->addr);
+#ifdef BRIDGE_DEBUG
+            LOGI("[PATCH:CAPTURE] %s at 0x%08x: actual_old=0x%08x (new=0x%08x)",
+                 p->name, p->addr, actual_old, p->new_value);
+#endif
+            if (p->check_expected && actual_old != p->expected_old) {
+                LOGE("[PATCH:MISMATCH] '%s' at 0x%08x: expected 0x%08x, found 0x%08x. Patch aborted!",
+                     p->name, p->addr, p->expected_old, actual_old);
+                continue;
+            }
+            *(uint32_t*)(code_base + p->addr) = p->new_value;
+            LOGI("[PATCH] %s at 0x%08x -> 0x%08x", p->name, p->addr, p->new_value);
+        }
+    }
 }
 
 void game_patches_install_helpers(uint8_t *stubs_base, int qsort_plt_idx) {
