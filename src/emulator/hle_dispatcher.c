@@ -627,6 +627,109 @@ static void h_net_fail(hle_t *c) { set_guest_errno(ENETUNREACH); c->r0 = (uint32
 static void h_ret0(hle_t *c)     { c->r0 = 0; }
 static void h_retm1(hle_t *c)    { c->r0 = (uint32_t)-1; }
 
+static void log_stub_call_once(const char *name, uint32_t lr, const char *extra) {
+    #define MAX_STUB_SEEN 64
+    static struct { const char *name; uint32_t lr; } s_seen[MAX_STUB_SEEN];
+    static int s_seen_count = 0;
+
+    for (int i = 0; i < s_seen_count; i++) {
+        if (s_seen[i].name == name && s_seen[i].lr == lr) return;
+    }
+    if (s_seen_count < MAX_STUB_SEEN) {
+        s_seen[s_seen_count].name = name;
+        s_seen[s_seen_count].lr = lr;
+        s_seen_count++;
+    }
+
+    if (extra && extra[0]) {
+        LOGI("[STUB:%s] called from guest lr=0x%08x: %s", name, lr, extra);
+    } else {
+        LOGI("[STUB:%s] called from guest lr=0x%08x", name, lr);
+    }
+}
+
+static void h_stub_fprintf(hle_t *c) {
+    uint32_t stream_val = c->r0;
+    const char *fmt = (const char*)guest_to_host(c->r1);
+    char extra[256];
+    bool is_std = (stream_val == 1 || stream_val == 2);
+    if ((void*)(uintptr_t)stream_val == (void*)stdout || (void*)(uintptr_t)stream_val == (void*)stderr) {
+        is_std = true;
+    }
+
+    if (!is_std) {
+        snprintf(extra, sizeof(extra), "NON-STANDARD stream fp=0x%x (fmt='%s') - possible lost data write!",
+                 stream_val, fmt ? fmt : "NULL");
+        LOGE("[STUB:fprintf] NON-STANDARD stream fp=0x%x (fmt='%s') lr=0x%x - possible lost data write!",
+             stream_val, fmt ? fmt : "NULL", c->lr);
+    } else {
+        snprintf(extra, sizeof(extra), "stream=std (fp=0x%x, fmt='%s')", stream_val, fmt ? fmt : "NULL");
+    }
+    log_stub_call_once("fprintf", c->lr, extra);
+    c->r0 = 0;
+}
+
+static void h_stub_fdopen(hle_t *c) {
+    int fd = (int)c->r0;
+    const char *mode = (const char*)guest_to_host(c->r1);
+    char extra[128];
+    bool is_std = (fd == 0 || fd == 1 || fd == 2);
+    if (!is_std) {
+        snprintf(extra, sizeof(extra), "NON-STANDARD fd=%d mode='%s' - possible lost data file!",
+                 fd, mode ? mode : "NULL");
+        LOGE("[STUB:fdopen] NON-STANDARD fd=%d mode='%s' lr=0x%x - possible lost data file!",
+             fd, mode ? mode : "NULL", c->lr);
+    } else {
+        snprintf(extra, sizeof(extra), "fd=%d mode='%s'", fd, mode ? mode : "NULL");
+    }
+    log_stub_call_once("fdopen", c->lr, extra);
+    c->r0 = 0;
+}
+
+static void h_stub_puts(hle_t *c) {
+    const char *str = (const char*)guest_to_host(c->r0);
+    char extra[128] = {0};
+    if (str) snprintf(extra, sizeof(extra), "msg='%.64s'", str);
+    log_stub_call_once("puts", c->lr, extra);
+#ifdef __ANDROID__
+    if (str) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "[GUEST:puts] %s", str);
+#else
+    if (str) printf("[GUEST:puts] %s\n", str);
+#endif
+    c->r0 = 0;
+}
+
+static void h_stub_close(hle_t *c) {
+    char extra[64];
+    snprintf(extra, sizeof(extra), "fd=%d", (int)c->r0);
+    log_stub_call_once("close", c->lr, extra);
+    c->r0 = 0;
+}
+
+static void h_stub_dup(hle_t *c) {
+    char extra[64];
+    snprintf(extra, sizeof(extra), "fd=%d", (int)c->r0);
+    log_stub_call_once("dup", c->lr, extra);
+    set_guest_errno(EBADF);
+    c->r0 = (uint32_t)-1;
+}
+
+static void h_stub_ioctl(hle_t *c) {
+    char extra[64];
+    snprintf(extra, sizeof(extra), "fd=%d req=0x%x", (int)c->r0, c->r1);
+    log_stub_call_once("ioctl", c->lr, extra);
+    c->r0 = 0;
+}
+
+static void h_stub_mkstemp(hle_t *c) {
+    const char *tmpl = (const char*)guest_to_host(c->r0);
+    char extra[128];
+    snprintf(extra, sizeof(extra), "template='%s'", tmpl ? tmpl : "NULL");
+    log_stub_call_once("mkstemp", c->lr, extra);
+    set_guest_errno(EACCES);
+    c->r0 = (uint32_t)-1;
+}
+
 static void h_gethostbyname(hle_t *c) {
     const char *host = (const char*)guest_to_host(c->r0);
     if (host && strstr(host, "glu.com") != NULL) {
@@ -864,8 +967,8 @@ static const struct { const char *name; hle_fn fn; } s_hle_defs[] = {
     {"recv", h_net_fail}, {"sendto", h_net_fail}, {"recvfrom", h_net_fail}, {"setsockopt", h_ret0},
     {"getsockopt", h_ret0}, {"getsockname", h_ret0}, {"gethostbyname", h_gethostbyname},
     {"gethostbyaddr", h_ret0}, {"inet_addr", h_retm1}, {"inet_ntoa", h_ret0}, {"gethostname", h_ret0},
-    {"shutdown", h_ret0}, {"close", h_ret0}, {"usleep", h_ret0}, {"puts", h_ret0}, {"fprintf", h_ret0},
-    {"fdopen", h_ret0}, {"dup", h_retm1}, {"select", h_ret0}, {"ioctl", h_ret0}, {"mkstemp", h_retm1},
+    {"shutdown", h_ret0}, {"close", h_stub_close}, {"usleep", h_ret0}, {"puts", h_stub_puts}, {"fprintf", h_stub_fprintf},
+    {"fdopen", h_stub_fdopen}, {"dup", h_stub_dup}, {"select", h_ret0}, {"ioctl", h_stub_ioctl}, {"mkstemp", h_stub_mkstemp},
     {"qsort", h_ret0},
 
     // Android logging
