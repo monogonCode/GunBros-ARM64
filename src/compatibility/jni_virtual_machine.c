@@ -1,4 +1,5 @@
 #include "gunbros/compatibility/jni_virtual_machine.h"
+#include "gunbros/compatibility/jni_methods.h"
 #include "gunbros/emulator/guest_memory.h"
 #include "gunbros/platform/jni_env_helper.h"
 #include "gunbros/platform/android_audio.h"
@@ -108,26 +109,8 @@ void handle_jvm_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
     }
 }
 
-static uint32_t get_jni_method_arg(int idx, uint32_t r3, uint32_t sp, int arg_idx) {
-    int is_va = (idx == 35 || idx == 36 || idx == 38 || idx == 39 ||
-                 idx == 41 || idx == 42 || idx == 44 || idx == 45 ||
-                 idx == 47 || idx == 48 || idx == 50 || idx == 51 ||
-                 idx == 53 || idx == 54 || idx == 56 || idx == 57 ||
-                 idx == 59 || idx == 60 || idx == 62 || idx == 63 ||
-                 idx == 68 || idx == 69 || idx == 80 || idx == 81 ||
-                 idx == 92 || idx == 93 || idx == 118 || idx == 119 ||
-                 idx == 130 || idx == 131 || idx == 142 || idx == 143);
-
-    if (is_va || (r3 >= GUEST_STACK_BASE && r3 < GUEST_STACK_BASE + GUEST_STACK_SIZE)) {
-        uint32_t *args = (uint32_t*)guest_to_host(r3);
-        if (args) return args[arg_idx];
-        return 0;
-    }
-
-    if (arg_idx == 0) return r3;
-    uint32_t *sp_args = (uint32_t*)guest_to_host(sp);
-    if (sp_args) return sp_args[arg_idx - 1];
-    return 0;
+const char* jvm_get_last_string(void) {
+    return s_last_jni_string;
 }
 
 void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t *r3, uint32_t sp, uint32_t lr) {
@@ -196,20 +179,11 @@ void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
         case 115: // CallStaticObjectMethodV
         case 116: // CallStaticObjectMethodA
         {
-            const char *mname = jvm_get_method_name(*r2);
-            DLOG("JNI CallObjectMethod: mid=0x%x ('%s')", *r2, mname);
-            if (strcmp(mname, "resdlStringEvent") == 0) {
-                *r0 = GUEST_RESDL_STRING;
-            } else if (strcmp(mname, "OpenAPKFile") == 0) {
-#ifdef BRIDGE_DEBUG
-                uint32_t fname_arg = get_jni_method_arg(idx, *r3, sp, 0);
-                const char *fname = (const char*)guest_to_host(fname_arg);
-                LOGI("[BRIDGE_DEBUG:JNI] OpenAPKFile called for '%s' - returning NULL", fname ? fname : "NULL");
-#else
-                DLOG("JNI OpenAPKFile: returning NULL (resources exist on disk)");
-#endif
-                *r0 = 0;
-            } else {
+            uint32_t mid_val = (idx >= 64 && idx <= 93) ? *r3 : *r2;
+            const char *mname = jvm_get_method_name(mid_val);
+            DLOG("JNI CallObjectMethod: mid=0x%x ('%s')", mid_val, mname);
+            jni_call_context_t ctx = { idx, r0, r1, r2, r3, sp };
+            if (!jni_methods_dispatch(mname, &ctx)) {
                 *r0 = GUEST_DUMMY_OBJ;
             }
             break;
@@ -228,72 +202,8 @@ void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
             uint32_t mid_val = (idx >= 64 && idx <= 93) ? *r3 : *r2;
             const char *mname = jvm_get_method_name(mid_val);
             DLOG("JNI CallBooleanMethod: mid=0x%x ('%s')", mid_val, mname);
-            if (strcmp(mname, "InitialiseSoundEngine") == 0) {
-                uint32_t use_pcm  = get_jni_method_arg(idx, *r3, sp, 0);
-                uint32_t rate     = get_jni_method_arg(idx, *r3, sp, 1);
-                uint32_t channels = get_jni_method_arg(idx, *r3, sp, 2);
-                uint32_t bits     = get_jni_method_arg(idx, *r3, sp, 3);
-                uint32_t bufsz    = get_jni_method_arg(idx, *r3, sp, 4);
-                uint32_t period   = get_jni_method_arg(idx, *r3, sp, 5);
-
-                if (use_pcm && bits == 16) {
-                    audio_configure(rate, channels, bits, bufsz, period);
-                    *r0 = 1;
-                    break;
-                }
-                JNIEnv *real_env = platform_get_env();
-                jobject real_callback = platform_get_callback();
-                jboolean ok = JNI_TRUE;
-                if (real_env && real_callback) {
-                    jclass cls = (*real_env)->GetObjectClass(real_env, real_callback);
-                    jmethodID mid = (*real_env)->GetMethodID(real_env, cls, "InitialiseSoundEngine", "(ZIIIII)Z");
-                    if (mid) {
-                        ok = (*real_env)->CallBooleanMethod(real_env, real_callback, mid,
-                                                            (jboolean)(use_pcm ? JNI_TRUE : JNI_FALSE),
-                                                            (jint)rate, (jint)channels, (jint)bits, (jint)bufsz, (jint)period);
-                        LOGI("Forwarded InitialiseSoundEngine(pcm=%u, rate=%u, ch=%u, bits=%u, buf=%u, per=%u) -> %d",
-                             use_pcm, rate, channels, bits, bufsz, period, ok);
-                        if (ok) audio_set_engine_ready(true);
-                    }
-                }
-                *r0 = ok ? 1 : 0;
-            } else if (strcmp(mname, "StartAudioStream") == 0) {
-                if (audio_is_native()) {
-                    audio_start_stream();
-                    *r0 = 1;
-                } else {
-                    JNIEnv *real_env = platform_get_env();
-                    jobject real_callback = platform_get_callback();
-                    jboolean ok = JNI_TRUE;
-                    if (real_env && real_callback) {
-                        jclass cls = (*real_env)->GetObjectClass(real_env, real_callback);
-                        jmethodID mid = (*real_env)->GetMethodID(real_env, cls, "StartAudioStream", "()Z");
-                        if (mid) ok = (*real_env)->CallBooleanMethod(real_env, real_callback, mid);
-                    }
-                    *r0 = ok ? 1 : 0;
-                }
-            } else if (strcmp(mname, "StopAudioStream") == 0) {
-                if (audio_is_native()) {
-                    audio_stop_stream();
-                    *r0 = 1;
-                } else {
-                    JNIEnv *real_env = platform_get_env();
-                    jobject real_callback = platform_get_callback();
-                    jboolean ok = JNI_TRUE;
-                    if (real_env && real_callback) {
-                        jclass cls = (*real_env)->GetObjectClass(real_env, real_callback);
-                        jmethodID mid = (*real_env)->GetMethodID(real_env, cls, "StopAudioStream", "()Z");
-                        if (mid) ok = (*real_env)->CallBooleanMethod(real_env, real_callback, mid);
-                    }
-                    *r0 = ok ? 1 : 0;
-                }
-            } else if (strcmp(mname, "IsPSP") == 0 ||
-                       strcmp(mname, "interfaceIsOpen") == 0 ||
-                       strcmp(mname, "isVisible") == 0 ||
-                       strcmp(mname, "canDisplayInterface") == 0 ||
-                       strcmp(mname, "getFeaturedAppQueryState") == 0) {
-                *r0 = 0;
-            } else {
+            jni_call_context_t ctx = { idx, r0, r1, r2, r3, sp };
+            if (!jni_methods_dispatch(mname, &ctx)) {
                 *r0 = 1;
             }
             break;
@@ -312,49 +222,8 @@ void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
             uint32_t mid_val = (idx >= 64 && idx <= 93) ? *r3 : *r2;
             const char *mname = jvm_get_method_name(mid_val);
             DLOG("JNI CallIntMethod: mid=0x%x ('%s')", mid_val, mname);
-            if (mid_val == 0x00003000 || mid_val == 12288 || strcmp(mname, "eglGetError") == 0) {
-                *r0 = 12288; // 0x3000 = EGL_SUCCESS
-            } else if (mid_val == 0x00003001 || strcmp(mname, "GetDeviceOrientation") == 0) {
-                *r0 = 0; // Landscape
-            } else if (strcmp(mname, "resdlEvent") == 0) {
-                *r0 = 1;
-            } else if (strcmp(mname, "GetAndroidMinBufferSize") == 0) {
-                uint32_t rate     = get_jni_method_arg(idx, *r3, sp, 0);
-                uint32_t channels = get_jni_method_arg(idx, *r3, sp, 1);
-                uint32_t bits     = get_jni_method_arg(idx, *r3, sp, 2);
-
-                if (rate == 0 || rate > 192000) rate = 22050;
-                if (channels != 1 && channels != 2) channels = 2;
-                if (bits != 8 && bits != 16) bits = 16;
-
-                JNIEnv *real_env = platform_get_env();
-                jobject real_callback = platform_get_callback();
-                jint min_buf = 4096;
-                if (real_env && real_callback) {
-                    jclass cls = (*real_env)->GetObjectClass(real_env, real_callback);
-                    jmethodID mid = (*real_env)->GetMethodID(real_env, cls, "GetAndroidMinBufferSize", "(III)I");
-                    if (mid) {
-                        min_buf = (*real_env)->CallIntMethod(real_env, real_callback, mid, (jint)rate, (jint)channels, (jint)bits);
-                    }
-                }
-                *r0 = (uint32_t)(min_buf > 0 ? min_buf : 4096);
-            } else if (strcmp(mname, "mp3Event") == 0) {
-                uint32_t event = get_jni_method_arg(idx, *r3, sp, 0);
-                uint32_t loop  = get_jni_method_arg(idx, *r3, sp, 1);
-                JNIEnv *real_env = platform_get_env();
-                jobject real_callback = platform_get_callback();
-                jint ret = 0;
-                if (real_env && real_callback) {
-                    jclass cls = (*real_env)->GetObjectClass(real_env, real_callback);
-                    jmethodID mid = (*real_env)->GetMethodID(real_env, cls, "mp3Event", "(IILjava/lang/String;)I");
-                    if (mid) {
-                        jstring jstr = (*real_env)->NewStringUTF(real_env, s_last_jni_string);
-                        ret = (*real_env)->CallIntMethod(real_env, real_callback, mid, (jint)event, (jint)loop, jstr);
-                        if (jstr) (*real_env)->DeleteLocalRef(real_env, jstr);
-                    }
-                }
-                *r0 = (uint32_t)ret;
-            } else {
+            jni_call_context_t ctx = { idx, r0, r1, r2, r3, sp };
+            if (!jni_methods_dispatch(mname, &ctx)) {
                 *r0 = 0;
             }
             break;
@@ -373,10 +242,8 @@ void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
             uint32_t mid_val = (idx >= 64 && idx <= 93) ? *r3 : *r2;
             const char *mname = jvm_get_method_name(mid_val);
             DLOG("JNI CallLongMethod: mid=0x%x ('%s')", mid_val, mname);
-            if (strcmp(mname, "GetDeviceAvailableMemory") == 0) {
-                *r0 = 64 * 1024 * 1024;
-                *r1 = 0;
-            } else {
+            jni_call_context_t ctx = { idx, r0, r1, r2, r3, sp };
+            if (!jni_methods_dispatch(mname, &ctx)) {
                 *r0 = 0;
                 *r1 = 0;
             }
@@ -396,24 +263,9 @@ void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
             uint32_t mid_val = (idx >= 64 && idx <= 93) ? *r3 : *r2;
             const char *mname = jvm_get_method_name(mid_val);
             DLOG("JNI CallVoidMethod: mid=0x%x ('%s')", mid_val, mname);
-            if (strcmp(mname, "EnableMultipleTouch") == 0) {
-                uint32_t enable = get_jni_method_arg(idx, *r3, sp, 0);
-                JNIEnv *real_env = platform_get_env();
-                jobject real_callback = platform_get_callback();
-                if (real_env && real_callback) {
-                    jclass cls = (*real_env)->GetObjectClass(real_env, real_callback);
-                    jmethodID mid = (*real_env)->GetMethodID(real_env, cls, "EnableMultipleTouch", "(Z)V");
-                    if (mid) (*real_env)->CallVoidMethod(real_env, real_callback, mid, (jboolean)(enable ? JNI_TRUE : JNI_FALSE));
-                }
-            } else if (strcmp(mname, "SetVolume") == 0) {
-                uint32_t vol = get_jni_method_arg(idx, *r3, sp, 0);
-                JNIEnv *real_env = platform_get_env();
-                jobject real_callback = platform_get_callback();
-                if (real_env && real_callback) {
-                    jclass cls = (*real_env)->GetObjectClass(real_env, real_callback);
-                    jmethodID mid = (*real_env)->GetMethodID(real_env, cls, "SetVolume", "(B)V");
-                    if (mid) (*real_env)->CallVoidMethod(real_env, real_callback, mid, (jbyte)vol);
-                }
+            jni_call_context_t ctx = { idx, r0, r1, r2, r3, sp };
+            if (!jni_methods_dispatch(mname, &ctx)) {
+                // unhandled void method
             }
             *r0 = 0;
             break;

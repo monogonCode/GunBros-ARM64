@@ -30,6 +30,7 @@ void handle_jvm_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
 void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t *r3, uint32_t sp, uint32_t lr);
 
 int safe_guest_snprintf(char *dst, size_t max_len, const char *fmt, uint32_t *reg_args, int reg_count, uint32_t sp);
+const char* jvm_get_last_string(void);
 
 GUNBROS_EXTERN_C_END
 

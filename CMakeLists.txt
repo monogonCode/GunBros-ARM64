@@ -28,7 +28,10 @@ set(GUNBROS_PLATFORM_SOURCES
 
 set(GUNBROS_COMPAT_SOURCES
     src/compatibility/game_patches.c
+    src/compatibility/game_hooks.c
     src/compatibility/jni_virtual_machine.c
+    src/compatibility/jni_methods.c
+    src/compatibility/jni_audio.c
 )
 
 set(GUNBROS_HLE_SOURCES

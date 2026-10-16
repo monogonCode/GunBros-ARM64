@@ -6,6 +6,7 @@
 #include "gunbros/filesystem/path_mapper.h"
 #include "gunbros/compatibility/jni_virtual_machine.h"
 #include "gunbros/compatibility/guest_symbols.h"
+#include "gunbros/compatibility/game_hooks.h"
 #include "gunbros/platform/android_window.h"
 #include "gunbros/platform/android_audio.h"
 #include "gunbros/platform/jni_env_helper.h"
@@ -133,35 +134,8 @@ static void touch_dispatch(int type, int x, int y, int pid) {
     }
     run_guest(entry[type], "touch");
 
-    if (type == 2) { // TouchEnded: Character selection support in PLAYER_SELECT state
-        uint32_t app_ptr = 0;
-        guest_mem_read(GUEST_ADDR_APP_PTR, &app_ptr, 4);
-        if (app_ptr != 0) {
-            uint32_t gunbros = 0;
-            guest_mem_read(app_ptr + GUEST_OFF_APP_GUNBROS, &gunbros, 4);
-            if (gunbros != 0) {
-                uint32_t gstate = 0;
-                guest_mem_read(gunbros + GUEST_OFF_GB_GSTATE, &gstate, 4);
-                if (gstate == 5) {
-                    uint32_t menu_sys = 0;
-                    guest_mem_read(gunbros + GUEST_OFF_GB_MENUSYS, &menu_sys, 4);
-                    if (menu_sys != 0) {
-                        uint32_t top_menu = 0;
-                        guest_mem_read(menu_sys + GUEST_OFF_MENU_TOP, &top_menu, 4);
-                        if (top_menu != 0) {
-                            int gw = 1024, gh = 640;
-                            window_get_dimensions(&gw, &gh);
-                            uint32_t sel = (x < gw / 2) ? 0 : 1;
-                            DLOG("TouchEnded in PLAYER_SELECT: selecting %s (index %d, top=0x%x)",
-                                 sel == 0 ? "Percy Gun" : "Francis Gun", sel, top_menu);
-                            prepare_call_arm(top_menu);
-                            dynarmic_backend_set_reg(1, sel);
-                            run_guest(GUEST_FN_SELECT_CHAR, "select_char");
-                        }
-                    }
-                }
-            }
-        }
+    if (type == 2) { // TouchEnded: Character selection hook
+        game_hooks_on_touch_ended(x, y);
     }
 }
 
