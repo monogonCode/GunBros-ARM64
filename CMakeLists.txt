@@ -31,11 +31,20 @@ set(GUNBROS_COMPAT_SOURCES
     src/compatibility/jni_virtual_machine.c
 )
 
+set(GUNBROS_HLE_SOURCES
+    src/hle/libc_string.c
+    src/hle/libc_time.c
+    src/hle/libc_stdio.c
+    src/hle/net_stubs.c
+    src/hle/gles1.c
+    src/hle/hle_table.c
+)
+
 set(GUNBROS_EMULATOR_SOURCES
     src/emulator/guest_memory.c
-    src/emulator/hle_dispatcher.c
     src/emulator/elf_loader.c
     src/emulator/dynarmic_backend.cpp
+    ${GUNBROS_HLE_SOURCES}
 )
 
 set(GUNBROS_BRIDGE_SOURCES
