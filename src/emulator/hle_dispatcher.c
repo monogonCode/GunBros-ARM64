@@ -235,18 +235,142 @@ static void h_vsnprintf(hle_t *c) {
     uint32_t va_sp = c->r3;
     c->r0 = (uint32_t)safe_guest_snprintf(dst, max_len, fmt, NULL, 0, va_sp);
 }
+#define MAX_SSCANF_ARGS 16
+
+static int normalize_scanf_format(const char *fmt, char *out_fmt, size_t out_sz, int *out_num_args) {
+    if (!fmt || !out_fmt || out_sz == 0) return -1;
+    size_t o = 0;
+    int arg_count = 0;
+    const char *p = fmt;
+
+    while (*p && o + 1 < out_sz) {
+        if (*p != '%') {
+            out_fmt[o++] = *p++;
+            continue;
+        }
+
+        out_fmt[o++] = *p++;
+        if (*p == '%') {
+            if (o + 1 < out_sz) out_fmt[o++] = *p++;
+            continue;
+        }
+
+        bool suppress = false;
+        if (*p == '*') {
+            suppress = true;
+            if (o + 1 < out_sz) out_fmt[o++] = *p++;
+        }
+
+        while (*p >= '0' && *p <= '9') {
+            if (o + 1 < out_sz) out_fmt[o++] = *p++;
+            else break;
+        }
+
+        if (p[0] == 'l' && p[1] == 'l') {
+            if (o + 2 < out_sz) {
+                out_fmt[o++] = *p++;
+                out_fmt[o++] = *p++;
+            }
+        } else if (*p == 'l') {
+            char next = p[1];
+            if (next == 'f' || next == 'F' || next == 'g' || next == 'G' || next == 'e' || next == 'E' || next == 'a' || next == 'A') {
+                if (o + 1 < out_sz) out_fmt[o++] = *p++;
+            } else if (next == 'd' || next == 'i' || next == 'u' || next == 'x' || next == 'X' || next == 'o') {
+                // Strip 'l' so 64-bit host sscanf writes 4 bytes (guest long is 4 bytes)
+                p++;
+            } else {
+                if (o + 1 < out_sz) out_fmt[o++] = *p++;
+            }
+        } else if (*p == 'z' || *p == 't') {
+            p++;
+        } else if (*p == 'h') {
+            if (o + 1 < out_sz) out_fmt[o++] = *p++;
+            if (*p == 'h') {
+                if (o + 1 < out_sz) out_fmt[o++] = *p++;
+            }
+        }
+
+        if (*p == '[') {
+            if (o + 1 < out_sz) out_fmt[o++] = *p++;
+            if (*p == '^') {
+                if (o + 1 < out_sz) out_fmt[o++] = *p++;
+            }
+            if (*p == ']') {
+                if (o + 1 < out_sz) out_fmt[o++] = *p++;
+            }
+            while (*p && *p != ']') {
+                if (o + 1 < out_sz) out_fmt[o++] = *p++;
+            }
+            if (*p == ']') {
+                if (o + 1 < out_sz) out_fmt[o++] = *p++;
+            }
+            if (!suppress) arg_count++;
+        } else if (*p) {
+            char spec = *p;
+            if (o + 1 < out_sz) out_fmt[o++] = *p++;
+            if (!suppress) {
+                arg_count++;
+            }
+        }
+    }
+    out_fmt[o] = '\0';
+    if (out_num_args) *out_num_args = arg_count;
+    return 0;
+}
+
 static void h_sscanf(hle_t *c) {
     const char *str = (const char*)guest_to_host(c->r0);
     const char *fmt = (const char*)guest_to_host(c->r1);
-    void *arg0 = guest_to_host(c->r2);
-    void *arg1 = guest_to_host(c->r3);
-    if (str && fmt && arg0 && arg1) {
-        c->r0 = (uint32_t)sscanf(str, fmt, arg0, arg1);
-    } else if (str && fmt && arg0) {
-        c->r0 = (uint32_t)sscanf(str, fmt, arg0);
-    } else {
+    if (!str || !fmt) {
         c->r0 = 0;
+        return;
     }
+
+    char norm_fmt[512];
+    int num_args = 0;
+    normalize_scanf_format(fmt, norm_fmt, sizeof(norm_fmt), &num_args);
+
+    if (num_args > MAX_SSCANF_ARGS) {
+        LOGE("h_sscanf: format has %d conversions, exceeding MAX_SSCANF_ARGS (%d): fmt='%s'",
+             num_args, MAX_SSCANF_ARGS, fmt);
+        num_args = MAX_SSCANF_ARGS;
+    }
+
+    void *args[MAX_SSCANF_ARGS] = {0};
+    for (int i = 0; i < num_args; i++) {
+        uint32_t gaddr = 0;
+        if (i == 0) gaddr = c->r2;
+        else if (i == 1) gaddr = c->r3;
+        else {
+            guest_mem_read(c->sp + (uint32_t)((i - 2) * 4), &gaddr, 4);
+        }
+        args[i] = gaddr ? guest_to_host(gaddr) : NULL;
+    }
+
+    int res = 0;
+    switch (num_args) {
+        case 0:  res = sscanf(str, norm_fmt); break;
+        case 1:  res = sscanf(str, norm_fmt, args[0]); break;
+        case 2:  res = sscanf(str, norm_fmt, args[0], args[1]); break;
+        case 3:  res = sscanf(str, norm_fmt, args[0], args[1], args[2]); break;
+        case 4:  res = sscanf(str, norm_fmt, args[0], args[1], args[2], args[3]); break;
+        case 5:  res = sscanf(str, norm_fmt, args[0], args[1], args[2], args[3], args[4]); break;
+        case 6:  res = sscanf(str, norm_fmt, args[0], args[1], args[2], args[3], args[4], args[5]); break;
+        case 7:  res = sscanf(str, norm_fmt, args[0], args[1], args[2], args[3], args[4], args[5], args[6]); break;
+        case 8:  res = sscanf(str, norm_fmt, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]); break;
+        case 9:  res = sscanf(str, norm_fmt, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8]); break;
+        case 10: res = sscanf(str, norm_fmt, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9]); break;
+        case 11: res = sscanf(str, norm_fmt, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10]); break;
+        case 12: res = sscanf(str, norm_fmt, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10], args[11]); break;
+        case 13: res = sscanf(str, norm_fmt, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10], args[11], args[12]); break;
+        case 14: res = sscanf(str, norm_fmt, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10], args[11], args[12], args[13]); break;
+        case 15: res = sscanf(str, norm_fmt, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10], args[11], args[12], args[13], args[14]); break;
+        default:
+            res = sscanf(str, norm_fmt, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7],
+                         args[8], args[9], args[10], args[11], args[12], args[13], args[14], args[15]);
+            break;
+    }
+    c->r0 = (uint32_t)res;
 }
 static void h_atoi(hle_t *c) {
     const char *s = guest_ptr(c->r0, 1);
