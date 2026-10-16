@@ -12,7 +12,7 @@ Un puente de compatibilidad y emulación en tiempo real (JIT) de alto rendimient
 
 ---
 
-## 🏗️ Arquitectura del Repositorio
+## Arquitectura del Repositorio
 
 El proyecto se encuentra estrictamente desacoplado por responsabilidades:
 
@@ -61,7 +61,7 @@ gunbros/
 
 ---
 
-## 🚀 Inicio Rápido
+## Inicio Rápido
 
 ### 1. Configurar Entorno y Dependencias
 Verifica las herramientas de tu sistema y genera el archivo `.env` automáticamente:
@@ -97,7 +97,7 @@ Conecta tu dispositivo Android mediante USB con depuración ADB activa:
 
 ---
 
-## 💾 Estado del Sistema de Archivos y Guardado de Progreso
+## Estado del Sistema de Archivos y Guardado de Progreso
 
 Se ha completado una auditoría profunda de la persistencia de datos:
 - **E/S POSIX y Scoped Storage**: La normalización de rutas a carpetas privadas de la aplicación, el aislamiento en descriptores de archivo virtuales (`1` al `64`), el vaciado automático de búferes (`fflush`) y las operaciones atómicas de renombrado funcionan al 100% sin errores de kernel.
@@ -106,7 +106,7 @@ Se ha completado una auditoría profunda de la persistencia de datos:
 
 ---
 
-## 📚 Índice de Documentación Técnica
+## Índice de Documentación Técnica
 
 Para comprender a fondo cada aspecto del proyecto, consulta las guías dedicadas en la carpeta `docs/`:
 
