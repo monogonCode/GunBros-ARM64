@@ -25,7 +25,10 @@ Inmediatamente después de que el cargador ELF (`elf_loader.c`) mapea los segmen
 | **J** | `0x0037a4e8` | Bucle de sondeo de red | `0xe3a00000` (`mov r0, #0`)<br>`0xe12fff1e` (`bx lr`) | **Bypass de Red GameSpy**: Elude la conexión obligatoria a servidores de emparejamiento GameSpy extintos (`peerchat.gamespy.com`), permitiendo jugar en solitario de forma inmediata. |
 
 ### Stubs y Helpers Auxiliares (`guest_helpers_bin.h`)
-En la región de memoria virtual `0x8000d000` se inyectan rutinas en código máquina ARM32 compiladas para proporcionar algoritmos rápidos de ordenación de memoria (`qsort`, `heapsort`) y soporte de desenrollado de pila (*stack unwinding*).
+En la región de memoria virtual `0x8000d000` se inyectan rutinas en código máquina ARM32 compiladas (460 bytes) para proporcionar algoritmos que requieren ejecutarse en el espacio de llamadas del guest (como `qsort`/`heapsort` con callbacks ARM32) y soporte de desenrollado de pila (*stack unwinding*).
+
+> [!NOTE]
+> **Procedencia del blob:** El código fuente original (.c/.s) de este helper no está versionado en el repositorio y solo se conserva en forma de array de bytes en `guest_helpers_bin.h`. De acuerdo con las normas de integridad del proyecto, no se reconstruye artificialmente; queda catalogado como pendiente de aportación por el autor del proyecto en el informe de revisión.
 
 ---
 
