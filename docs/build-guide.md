@@ -69,6 +69,18 @@ BOOST_ROOT="./third_party/boost/usr/include"
 
 ## 3. Inicio Rápido (Scripts Automatizados)
 
+### 3.0. Preparación del APK Base (`base_template.apk`)
+En conformidad con las reglas de derechos de autor e higiene del repositorio, los archivos APK originales y assets del juego **no están incluidos** en el repositorio.
+
+Antes del primer empaquetado, genera `base_template.apk` a partir de un APK original de Gun Bros v1.1.9 (ARM32) proporcionado por el usuario:
+```bash
+./scripts/make_base_apk.sh /ruta/al/GunBros_original.apk
+```
+Este script:
+1. Verifica la presencia de los assets esenciales (`assets/libandroidplatformjni.so`, etc.).
+2. Elimina firmas criptográficas obsoletas de `META-INF/` para permitir una firma limpia con `apksigner`.
+3. Prepara la estructura para la posterior inyección de la biblioteca ARM64.
+
 ### 3.1. Compilar el APK Completo para Android
 Desde el directorio raíz del repositorio:
 ```bash

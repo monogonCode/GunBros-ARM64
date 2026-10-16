@@ -25,6 +25,9 @@ fi
 
 if [[ ! -f "$BASE_APK" ]]; then
     echo "ERROR: Base template APK not found at $BASE_APK" >&2
+    echo "De acuerdo con las reglas de higiene y derechos de autor, el APK base no se incluye en el repositorio." >&2
+    echo "Para generarlo a partir del APK original de Gun Bros, ejecuta:" >&2
+    echo "  ./scripts/make_base_apk.sh /ruta/al/GunBros_original.apk" >&2
     exit 1
 fi
 
