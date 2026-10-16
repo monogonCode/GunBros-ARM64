@@ -1,19 +1,26 @@
+# Compilation outputs and binaries
 *.o
 *.so
 *.apk
 *.idsig
-gunbros_unaligned.apk
 build/
+
+# Logging and runtime artifacts
+logs/
+
+# Development environment and local configurations
+.env
 .idea/
 *.iml
 .system_generated/
+backups/
+
+# Decompilation and temporary inspection dirs
 apktool_out/
 extracted/
 jadx_out/
-*.png
-backups/
-.env
-tools/
-third_party/dynarmic/
-third_party/boost/
 
+# Local external toolchains and large submodules
+tools/
+third_party/dynarmic
+third_party/boost
