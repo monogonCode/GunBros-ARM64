@@ -280,8 +280,8 @@ static void h_clock(hle_t *c) { c->r0 = (uint32_t)clock(); }
 static void h_time(hle_t *c) {
     time_t t = time(NULL);
     if (c->r0) {
-        time_t *tp = (time_t*)guest_to_host(c->r0);
-        if (tp) *tp = t;
+        uint32_t *tp = (uint32_t*)guest_ptr(c->r0, 4);
+        if (tp) *tp = (uint32_t)t;
     }
     c->r0 = (uint32_t)t;
 }
@@ -289,7 +289,7 @@ static void h_gettimeofday(hle_t *c) {
     struct timeval tv;
     gettimeofday(&tv, NULL);
     if (c->r0) {
-        uint32_t *gtv = (uint32_t*)guest_to_host(c->r0);
+        uint32_t *gtv = (uint32_t*)guest_ptr(c->r0, 8);
         if (gtv) {
             gtv[0] = (uint32_t)tv.tv_sec;
             gtv[1] = (uint32_t)tv.tv_usec;
@@ -301,7 +301,7 @@ static void h_clock_gettime(hle_t *c) {
     struct timespec ts;
     int res = clock_gettime((clockid_t)c->r0, &ts);
     if (c->r1 && res == 0) {
-        uint32_t *gts = (uint32_t*)guest_to_host(c->r1);
+        uint32_t *gts = (uint32_t*)guest_ptr(c->r1, 8);
         if (gts) {
             gts[0] = (uint32_t)ts.tv_sec;
             gts[1] = (uint32_t)ts.tv_nsec;
