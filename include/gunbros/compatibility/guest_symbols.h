@@ -4,6 +4,16 @@
 #include <stdint.h>
 
 /* ========================================================================= */
+/* Guest Binary Verification                                                 */
+/* ========================================================================= */
+/**
+ * Expected SHA-256 hash (in lowercase hex) of the original ARM32
+ * libandroidplatformjni.so binary. If empty (""), a warning is logged.
+ * If non-empty and the calculated hash does not match, patches are refused.
+ */
+#define EXPECTED_GUEST_SHA256 ""
+
+/* ========================================================================= */
 /* Application Lifecycle & JNI Entry Points (in guest ARM32 code)            */
 /* ========================================================================= */
 #define GUEST_FN_JNI_ON_LOAD              0x00161cacu
