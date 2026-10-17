@@ -15,6 +15,7 @@ typedef struct {
 static JniMethodInfo s_jni_methods[MAX_JNI_METHODS];
 static int s_jni_method_count = 1;
 static char s_last_jni_string[512] = {0};
+static char s_last_byte_array[512] = {0};
 
 void jvm_virtual_init(uint8_t *heap_base, uint8_t *stubs_base, const char *game_dir) {
     if (!heap_base || !stubs_base) return;
@@ -93,9 +94,15 @@ const char* jvm_get_method_name(uint32_t id) {
     return "unknown";
 }
 
+static inline bool is_frequent_jni_method(uint32_t mid) {
+    return (mid == 0x27 || mid == 0x44 || mid == 0x4d || mid == 0x34 || mid == 0x4a);
+}
+
 void handle_jvm_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t *r3, uint32_t sp, uint32_t lr) {
     (void)r2; (void)r3; (void)sp; (void)lr;
-    DLOG("JVM Call: idx=%d (r0=0x%x, r1=0x%x, lr=0x%x)", idx, *r0, *r1, lr);
+    if (idx != 6) {
+        DLOG("JVM Call: idx=%d (r0=0x%x, r1=0x%x, lr=0x%x)", idx, *r0, *r1, lr);
+    }
     if (idx == 4) { // AttachCurrentThread(JavaVM*, JNIEnv**, void*)
         uint32_t *p_env = (uint32_t*)guest_to_host(*r1);
         if (p_env) *p_env = GUEST_ENV_OBJ;
@@ -111,6 +118,10 @@ void handle_jvm_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
 
 const char* jvm_get_last_string(void) {
     return s_last_jni_string;
+}
+
+const char* jvm_get_last_byte_array(void) {
+    return s_last_byte_array;
 }
 
 void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t *r3, uint32_t sp, uint32_t lr) {
@@ -181,7 +192,9 @@ void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
         {
             uint32_t mid_val = (idx >= 64 && idx <= 93) ? *r3 : *r2;
             const char *mname = jvm_get_method_name(mid_val);
-            DLOG("JNI CallObjectMethod: mid=0x%x ('%s')", mid_val, mname);
+            if (!is_frequent_jni_method(mid_val)) {
+                DLOG("JNI CallObjectMethod: mid=0x%x ('%s')", mid_val, mname);
+            }
             jni_call_context_t ctx = { idx, r0, r1, r2, r3, sp };
             if (!jni_methods_dispatch(mname, &ctx)) {
                 *r0 = GUEST_DUMMY_OBJ;
@@ -201,7 +214,9 @@ void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
         {
             uint32_t mid_val = (idx >= 64 && idx <= 93) ? *r3 : *r2;
             const char *mname = jvm_get_method_name(mid_val);
-            DLOG("JNI CallBooleanMethod: mid=0x%x ('%s')", mid_val, mname);
+            if (!is_frequent_jni_method(mid_val)) {
+                DLOG("JNI CallBooleanMethod: mid=0x%x ('%s')", mid_val, mname);
+            }
             jni_call_context_t ctx = { idx, r0, r1, r2, r3, sp };
             if (!jni_methods_dispatch(mname, &ctx)) {
                 *r0 = 1;
@@ -221,7 +236,9 @@ void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
         {
             uint32_t mid_val = (idx >= 64 && idx <= 93) ? *r3 : *r2;
             const char *mname = jvm_get_method_name(mid_val);
-            DLOG("JNI CallIntMethod: mid=0x%x ('%s')", mid_val, mname);
+            if (!is_frequent_jni_method(mid_val)) {
+                DLOG("JNI CallIntMethod: mid=0x%x ('%s')", mid_val, mname);
+            }
             jni_call_context_t ctx = { idx, r0, r1, r2, r3, sp };
             if (!jni_methods_dispatch(mname, &ctx)) {
                 *r0 = 0;
@@ -262,7 +279,9 @@ void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
         {
             uint32_t mid_val = (idx >= 64 && idx <= 93) ? *r3 : *r2;
             const char *mname = jvm_get_method_name(mid_val);
-            DLOG("JNI CallVoidMethod: mid=0x%x ('%s')", mid_val, mname);
+            if (!is_frequent_jni_method(mid_val)) {
+                DLOG("JNI CallVoidMethod: mid=0x%x ('%s')", mid_val, mname);
+            }
             jni_call_context_t ctx = { idx, r0, r1, r2, r3, sp };
             if (!jni_methods_dispatch(mname, &ctx)) {
                 // unhandled void method
@@ -365,9 +384,13 @@ void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
             }
             break;
 
-        case 172: case 173: case 174: case 175: case 176:
+        case 172: case 173: case 174: case 175:
         case 177: case 178: case 179: case 180: case 181: case 182:
             *r0 = GUEST_DUMMY_OBJ;
+            break;
+
+        case 176: // NewByteArray
+            *r0 = GUEST_RESDL_BYTE_ARRAY;
             break;
 
         case 183: case 184: case 185: case 186: case 187:
@@ -384,7 +407,34 @@ void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
             *r0 = 0;
             break;
 
-        case 208: // SetByteArrayRegion
+        case 208: // SetByteArrayRegion(env, array, start, len, buf)
+        {
+            uint32_t buf_ptr = 0;
+            guest_mem_read(sp, &buf_ptr, 4);
+            const void *src = guest_to_host(buf_ptr);
+            uint32_t len = *r3;
+            uint32_t start = *r2;
+            uint32_t array_addr = *r1;
+            void *dst = guest_to_host(array_addr + start);
+            if (src && dst && len > 0) {
+                memcpy(dst, src, len);
+                if (array_addr == GUEST_RESDL_BYTE_ARRAY && (start + len < 0x800)) {
+                    ((char*)dst)[len] = '\0';
+                }
+            }
+            if (src && len > 0) {
+                uint32_t copy_len = len < (sizeof(s_last_byte_array) - 1) ? len : (sizeof(s_last_byte_array) - 1);
+                memcpy(s_last_byte_array, src, copy_len);
+                s_last_byte_array[copy_len] = '\0';
+            } else {
+                s_last_byte_array[0] = '\0';
+            }
+            DLOG("JNI SetByteArrayRegion: arr=0x%x, start=%u, len=%u, text='%s'",
+                 array_addr, start, len, s_last_byte_array);
+            *r0 = 0;
+            break;
+        }
+
         case 211: // SetIntArrayRegion
             *r0 = 0;
             break;

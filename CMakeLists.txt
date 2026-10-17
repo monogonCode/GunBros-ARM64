@@ -6,6 +6,11 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(BRIDGE_DEBUG "Enable bridge debug logging" OFF)
+if(BRIDGE_DEBUG)
+    add_compile_definitions(BRIDGE_DEBUG=1)
+endif()
+
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )

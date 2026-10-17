@@ -247,6 +247,9 @@ bool elf_loader_load(const uint8_t *buf, size_t buf_len, const char *game_dir) {
     // Dynamic relocations
     apply_relocations(buf, code_base);
 
+    // Zero out page 0 (ELF header at 0x00000000..0x00000fff) so any NULL+offset read returns 0
+    memset(code_base, 0, 0x1000);
+
     // Initialize application file paths for CFileMgr_Android
     const char *actual_game_dir = game_dir ? game_dir : "/sdcard/Android/data/com.glu.android.gunbros_free/files/";
     strncpy((char*)(code_base + GUEST_ADDR_RES_FILE_PATH), actual_game_dir, 1023); // sm_resFilePath

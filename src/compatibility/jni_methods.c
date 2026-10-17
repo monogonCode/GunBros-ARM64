@@ -54,8 +54,56 @@ static bool jni_method_get_device_orientation(const jni_call_context_t *ctx) {
     return true;
 }
 
+static const char* get_path_basename(const char *path) {
+    if (!path) return "";
+    const char *slash = strrchr(path, '/');
+    if (slash) path = slash + 1;
+    const char *colon = strrchr(path, ':');
+    if (colon) path = colon + 1;
+    return path;
+}
+
+static bool is_special_resource_file(const char *name) {
+    if (!name || name[0] == '\0') return false;
+    static const char * const s_special_res[] = {
+        "events.dat",
+        "packTOC_wvga.dat",
+        "packTOC_xga.dat",
+        "Gman_intro.3gp",
+        "1.mp3", "2.mp3", "3.mp3", "4.mp3", "5.mp3", "6.mp3", "game_0.mp3"
+    };
+    for (size_t i = 0; i < sizeof(s_special_res)/sizeof(s_special_res[0]); i++) {
+        if (strcmp(name, s_special_res[i]) == 0) return true;
+    }
+    return false;
+}
+
 static bool jni_method_resdl_event(const jni_call_context_t *ctx) {
-    *ctx->r0 = 1;
+    uint32_t event = get_jni_method_arg(ctx->idx, *ctx->r3, ctx->sp, 0);
+    uint32_t arg1 = get_jni_method_arg(ctx->idx, *ctx->r3, ctx->sp, 1);
+    uint32_t barr_obj = get_jni_method_arg(ctx->idx, *ctx->r3, ctx->sp, 2);
+
+    const char *fname = (const char*)guest_to_host(barr_obj);
+    if (!fname || fname[0] == '\0') {
+        fname = jvm_get_last_byte_array();
+    }
+
+    bool is_resource = false;
+    if (event == 2 && fname && fname[0] != '\0') {
+        const char *base = get_path_basename(fname);
+        size_t blen = strlen(base);
+        if (blen >= 4 && strcmp(base + blen - 4, ".big") == 0) {
+            is_resource = true;
+        } else if (is_special_resource_file(base)) {
+            is_resource = true;
+        }
+    }
+
+    LOGI("[JNI:resdlEvent] event=%u, arg1=%u, file='%s' -> %s",
+         event, arg1, (fname && fname[0]) ? fname : "(null)",
+         is_resource ? "RESOURCE (1)" : "LOCAL/SAVE (0)");
+
+    *ctx->r0 = is_resource ? 1 : 0;
     return true;
 }
 

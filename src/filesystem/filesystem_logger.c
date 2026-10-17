@@ -10,11 +10,7 @@
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 #endif
 
-#ifdef BRIDGE_DEBUG
-static fs_log_level_t s_log_level = FS_LOG_LEVEL_VERBOSE;
-#else
 static fs_log_level_t s_log_level = FS_LOG_LEVEL_INFO;
-#endif
 
 void fs_logger_set_level(fs_log_level_t level) {
     s_log_level = level;
@@ -39,28 +35,20 @@ void fs_log_open(const char *op, const char *orig_path, const char *norm_path, c
 
 void fs_log_close(int slot, const char *path, int err) {
     if (s_log_level < FS_LOG_LEVEL_INFO) return;
-    if (err == 0) {
-        DLOG("[FS:fclose] slot=%d path='%s' OK", slot, path ? path : "");
-    } else {
+    if (err != 0) {
         LOGE("[FS:fclose] slot=%d path='%s' FAILED errno=%d: %s", slot, path ? path : "", err, strerror(err));
     }
 }
 
 void fs_log_io(const char *op, int slot, size_t requested_bytes, size_t actual_bytes, int err) {
-    if (s_log_level < FS_LOG_LEVEL_VERBOSE && err == 0) return;
     if (err != 0 || actual_bytes < requested_bytes) {
-        LOGI("[FS:%s] slot=%d req=%zu got=%zu errno=%d", op, slot, requested_bytes, actual_bytes, err);
-    } else {
-        DLOG("[FS:%s] slot=%d bytes=%zu", op, slot, actual_bytes);
+        LOGE("[FS:%s] slot=%d req=%zu got=%zu errno=%d", op, slot, requested_bytes, actual_bytes, err);
     }
 }
 
 void fs_log_seek(int slot, long offset, int whence, int res, int err) {
-    if (s_log_level < FS_LOG_LEVEL_VERBOSE && res == 0) return;
     if (res != 0) {
         LOGE("[FS:fseek] slot=%d off=%ld whence=%d FAILED errno=%d: %s", slot, offset, whence, err, strerror(err));
-    } else {
-        DLOG("[FS:fseek] slot=%d off=%ld whence=%d OK", slot, offset, whence);
     }
 }
 
