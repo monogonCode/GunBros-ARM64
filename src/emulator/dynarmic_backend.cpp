@@ -19,6 +19,13 @@ static std::array<std::uint8_t*, Dynarmic::A32::UserConfig::NUM_PAGE_TABLE_ENTRI
 class GunBrosCallbacks final : public Dynarmic::A32::UserCallbacks {
 public:
     std::optional<std::uint32_t> MemoryReadCode(Dynarmic::A32::VAddr vaddr) override {
+        bool is_code = (vaddr >= 0x00100000u && vaddr < 0x00500000u) ||
+                       (vaddr >= 0x80000000u && vaddr < 0x80010000u) ||
+                       (vaddr >= 0xffff0000u && vaddr < 0xffff1000u);
+        if (!is_code) {
+            LOGE("MemoryReadCode: attempt to execute non-code address 0x%08x!", vaddr);
+            return std::nullopt;
+        }
         if (!g_g2h) return std::nullopt;
         void *ptr = g_g2h(vaddr);
         if (!ptr) return std::nullopt;
@@ -92,6 +99,18 @@ void GunBrosCallbacks::ExceptionRaised(Dynarmic::A32::VAddr pc, Dynarmic::A32::E
         LOGE("  r4=0x%08x r5=0x%08x r6=0x%08x r7=0x%08x", regs[4], regs[5], regs[6], regs[7]);
         LOGE("  r8=0x%08x r9=0x%08x r10=0x%08x r11=0x%08x", regs[8], regs[9], regs[10], regs[11]);
         LOGE("  ip=0x%08x sp=0x%08x lr=0x%08x pc=0x%08x cpsr=0x%08x", regs[12], regs[13], regs[14], regs[15], g_jit->Cpsr());
+        uint32_t sp = regs[13];
+        LOGE("  Stack dump at sp=0x%08x:", sp);
+        if (g_g2h) {
+            for (int i = 0; i < 32; i += 4) {
+                uint32_t *p = (uint32_t*)g_g2h(sp + i * 4);
+                if (p) {
+                    LOGE("    [sp+%03d]: 0x%08x 0x%08x 0x%08x 0x%08x",
+                         i * 4, p[0], p[1], p[2], p[3]);
+                }
+            }
+        }
+        g_jit->HaltExecution(Dynarmic::HaltReason::MemoryAbort);
     }
 }
 

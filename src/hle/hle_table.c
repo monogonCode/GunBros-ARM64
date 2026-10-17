@@ -243,10 +243,11 @@ static void *watchdog_thread(void *arg) {
                 LOGI("WATCHDOG: call '%s' (entry=0x%08x) running for %.1fs pc=0x%08x lr=0x%08x r0=0x%x r1=0x%x r2=0x%x r3=0x%x",
                      s_current_call_tag ? s_current_call_tag : "none", s_current_entry,
                      elapsed_ns / 1000000000.0, pc, lr, r0, r1, r2, r3);
-            }
-            if (elapsed_ns > 20ull * 1000000000ull) {
-                LOGE("WATCHDOG: halting Dynarmic after 20s");
-                dynarmic_backend_halt();
+                if (elapsed_ns > 10ull * 1000000000ull && (elapsed_ns / 1000000000ull) % 5 == 0) {
+                    LOGW("WATCHDOG: guest call '%s' running for %.1fs (long operation)",
+                         s_current_call_tag ? s_current_call_tag : "none",
+                         elapsed_ns / 1000000000.0);
+                }
             }
         }
     }
