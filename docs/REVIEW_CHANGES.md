@@ -177,15 +177,26 @@
 
 ---
 
-### Fase 6: Documentación y Entrega
+### Fase 7: Resolución de Persistencia, Concurrencia de Audio y Carga de Nivel
 
-* **6.1 Actualización integral del `README.md`**:
-  * **Acción**: Árbol de directorios sincronizado con la estructura real del repositorio; estado de persistencia actualizado con los defectos corregidos; enlaces técnicos comprobados; flujo de construcción documentado con `make_base_apk.sh`.
-  * **Commit**: `ee4bf25 docs(readme): update structure, persistence status, doc links and build workflow (6.1)`
+* **7.1 Restauración de Persistencia y Carga de Perfil Local**:
+  * **Acción**:
+    1. Se añadió el evento sintético JNI `resdlEvent` con código `100` (`RESDL_EVENT_COMPLETED`) en `bridge_on_draw_frame` cuando los recursos se cargan, permitiendo al gestor de perfiles avanzar su máquina de estados.
+    2. Se implementó el **Parche K** (`ProfileManager::LoginInitResourceLoaderCallback`), que salta la comprobación de `isReady` del servidor remoto de Glu (extinto) y ramifica directamente a `0x0035c2e0` para forzar la carga del perfil local (`savegame.dat`).
+    3. Se mapeó la ruta `/sdcard/Android/data/...` y `/storage/emulated/0/Android/data/...` a la ruta local canónica (`storage_dir`), permitiendo la carga del perfil y partidas previas.
+    4. Se incorporó el hash SHA-256 verificado (`e7b7f30b1dafb8381472b5d91184bb9ebd435c5a75952a4290d490254aec4c40`) y se completaron los opcodes de `expected_old` en la tabla de parches.
+  * **Commit**: `0ff92d3 fix(compat,fs): restore game persistence and local profile loading`
 
-* **6.2 Actualización de `docs/architecture.md` y `docs/compatibility.md`**:
-  * **Acción**: Se documentaron los cambios arquitectónicos: modularización de HLE, tabla declarativa de parches con captura, `game_hooks.c` y desacoplamiento de métodos JNI y audio.
-  * **Commit**: `edfe813 docs(arch,compat): document HLE modularization, table-driven patches and decoupled JNI (6.2)`
+* **7.2 Eliminación de Concurrencia en Dynarmic desde el Hilo de Audio**:
+  * **Acción**: El hilo Java de `AudioTrack` (`audio_feed_pcm_java`) ejecutaba `audio_pump_locked`, el cual llamaba a código de 32 bits a través de Dynarmic simultáneamente con el hilo de renderizado OpenGL, provocando corrupción de registros y cuelgues. Se desacopló por completo la alimentación Java: el hilo de audio ahora solo consume muestras precargadas en el búfer circular `s_pcm_ring`, mientras que Dynarmic solo se ejecuta en el hilo principal de renderizado (`bridge_on_draw_frame`).
+  * **Commit**: `821c25b fix(audio): eliminate concurrent Dynarmic execution from Java audio thread`
+
+* **7.3 Rango Ejecutable de Trampolines y Supresión de Inundación de Logs de E/S**:
+  * **Acción**:
+    1. Se amplió el rango ejecutable en `MemoryReadCode` (`dynarmic_backend.cpp`) a `0x00100000u .. 0x00500000u` para abarcar el espacio de los trampolines (`GUEST_PATCH_TRAMPOLINE_A/B/G` en `0x004f0000..0x004f0080`), solucionando el cuelgue al invocar `CResourceLoader::Init` durante la carga del nivel.
+    2. Se redujo el volumen de logs en `filesystem_logger.c` para evitar decenas de miles de registros por segundo en lecturas byte a byte, eliminando las pausas de 20 segundos durante la carga de recursos.
+    3. Se ajustó el *watchdog* de `hle_table.c` para emitir advertencias en lugar de detener forzosamente el emulador ante operaciones prolongadas de carga.
+  * **Commit**: `6e13619 fix(emulator,fs): expand MemoryReadCode to cover guest trampolines and silence logcat I/O flood`
 
 ---
 
@@ -197,6 +208,7 @@ Durante el análisis del código real se identificaron las siguientes discrepanc
 2. **Presencia local de `base_template.apk`**: El informe indicaba que `base_template.apk` no existía en el repositorio. En el espacio de trabajo local del usuario existía un archivo de 223 MB sin versionar en Git. Se mantuvo fuera del seguimiento Git mediante `.gitignore` y se implementó `scripts/make_base_apk.sh` para garantizar su generación reproducible por cualquier desarrollador sin infringir la Regla 5.
 3. **Despacho JNI no variádico vs. variádico**: Se observó que el índice de métodos JNI `CallNonvirtual*Method` (`idx 64..93`) recibe `clazz` en `r2` y `methodID` en `r3`, a diferencia de `CallObjectMethod` estándar que recibe `methodID` en `r2`. La normalización en `jni_methods_dispatch` unificó este cálculo corrigiendo discrepancias de despacho en métodos no virtuales.
 4. **Declaración de `strptime` en Host**: En Linux glibc, `strptime` requiere definir explícitamente `_GNU_SOURCE` o `_XOPEN_SOURCE` antes de `<time.h>`. Se incorporó `#define _GNU_SOURCE` en `libc_time.c` para permitir la compilación limpia del test de host sin alterar el comportamiento de Bionic.
+5. **Rango de Trampolines en Emulador**: El informe no contemplaba que los trampolines A, B y G fueron ubicados en `0x004f0000`, fuera del segmento de código ELF original (`0x00108000..0x0048c000`). La comprobación estricta de memoria de código en Dynarmic requirió expandir el rango a `0x00500000u` para permitir la ejecución de los trampolines instalados por el puente.
 
 ---
 
@@ -204,26 +216,21 @@ Durante el análisis del código real se identificaron las siguientes discrepanc
 
 Los siguientes puntos han sido preparados técnicamente pero requieren aportación o decisión directa por parte del autor del proyecto:
 
-1. **Hash Criptográfico `EXPECTED_GUEST_SHA256` (`include/gunbros/compatibility/guest_symbols.h`)**:
-   * *Estado actual*: Definido como cadena vacía `""`. El cargador `elf_loader.c` calcula el SHA-256 del binario cargado y lo imprime en Logcat (`Loaded guest ARM32 ELF SHA-256: <hash>`).
-   * *Acción requerida*: Copiar el hash obtenido en la sesión de ejecución del APK original y asignarlo a `EXPECTED_GUEST_SHA256` para activar el bloqueo estricto contra binarios corruptos o versiones no compatibles.
+1. **Hash Criptográfico `EXPECTED_GUEST_SHA256` y Opcodes `expected_old`**:
+   * *Estado actual*: **COMPLETADO Y VERIFICADO**. El hash SHA-256 (`e7b7f30b1dafb8381472b5d91184bb9ebd435c5a75952a4290d490254aec4c40`) y los opcodes de todos los parches fueron capturados desde el dispositivo real, asignados en `guest_symbols.h` y `game_patches.c`, y verificados contra el binario original con `test_patch_equivalence`.
 
-2. **Opcodes Originales para `expected_old` en `game_patches.c`**:
-   * *Estado actual*: Los parches A (`0x00366878`) y J (`0x0037a4e8`) están marcados como verificados (`verified = true`). Los parches B, C, D y E tienen `expected_old = 0` y `verified = false`.
-   * *Acción requerida*: Arrancar el juego en un emulador o dispositivo con `BRIDGE_DEBUG` activo. El emulador emitirá líneas con el tag `[PATCH:CAPTURE] Patch '<nombre>' original opcode at 0x... is 0x...`. Copiar esos valores en el campo `expected_old` de cada entrada en `s_patches[]` y marcar `verified = true`.
-
-3. **Código Fuente del Helper ARM32 (`guest_helpers_bin.h`)**:
+2. **Código Fuente del Helper ARM32 (`guest_helpers_bin.h`)**:
    * *Estado actual*: Se conserva el blob precompilado de 460 bytes inyectado en `0x8000d000`. De acuerdo con la Regla 7, no se inventó ni decompiló código ciego.
    * *Acción requerida*: Si el autor conserva el archivo original en ensamblador o C (por ejemplo `guest_qsort.c` o `guest_helpers.s`), incorporarlo en una carpeta `src/guest_helpers/` junto con un script de ensamblado con el toolchain de 32 bits del NDK.
 
-4. **Elección Formal de Licencia (`LICENSE`)**:
+3. **Elección Formal de Licencia (`LICENSE`)**:
    * *Estado actual*: Archivo `LICENSE` con texto de reserva legal y aviso de derechos de autor.
    * *Acción requerida*: El autor debe definir la licencia de código abierto deseada (MIT, Apache 2.0, GPLv2/v3). Téngase en cuenta que la dependencia `Dynarmic` está licenciada bajo BSD-3-Clause.
 
-5. **Aportación de Volcado de Guardado Real (`tests/golden/`)**:
+4. **Aportación de Volcado de Guardado Real (`tests/golden/`)**:
    * *Estado actual*: `golden_save_runner.c` ejecuta y valida el ciclo completo de E/S con un fixture sintético en cada test, y ejecutará adicionalmente la validación sobre `tests/golden/savegame.dat` cuando esté disponible.
    * *Acción requerida*: Extraer un `savegame.dat` de una partida real y ubicarlo en `tests/golden/savegame.dat` para ejecutar la validación con datos reales del juego.
 
-6. **Publicación en GitHub e Historial de Binarios Pasados**:
+5. **Publicación en GitHub e Historial de Binarios Pasados**:
    * *Estado actual*: En la rama actual `refactor/review-2026-10`, el árbol de trabajo y el índice de Git están 100% limpios de archivos `.so` y `.apk` (`git ls-files` no rastrea ningún binario). Sin embargo, en commits históricos anteriores al inicio de este refactor (`f0243d9`, `a0f6da3`, `6148f65` en `main`) existían binarios rastreados.
    * *Acción requerida*: Antes de hacer público el repositorio en GitHub, si se desea un historial completamente purgado de blobs pesados pasados, el autor puede ejecutar `git filter-repo --invert-paths --path-glob '*.so' --path-glob '*.apk'` o publicar un repositorio nuevo inicializado desde esta rama limpia.
