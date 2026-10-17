@@ -75,10 +75,7 @@ public:
     }
 
     void CallSVC(std::uint32_t swi) override;
-
-    void ExceptionRaised(Dynarmic::A32::VAddr pc, Dynarmic::A32::Exception exception) override {
-        LOGE("ExceptionRaised: pc=0x%08x, ex=%d", pc, static_cast<int>(exception));
-    }
+    void ExceptionRaised(Dynarmic::A32::VAddr pc, Dynarmic::A32::Exception exception) override;
 
     void AddTicks(std::uint64_t) override {}
     std::uint64_t GetTicksRemaining() override { return UINT64_MAX; }
@@ -86,6 +83,17 @@ public:
 
 static GunBrosCallbacks g_callbacks;
 static std::unique_ptr<Dynarmic::A32::Jit> g_jit;
+
+void GunBrosCallbacks::ExceptionRaised(Dynarmic::A32::VAddr pc, Dynarmic::A32::Exception exception) {
+    LOGE("ExceptionRaised: pc=0x%08x, ex=%d", pc, static_cast<int>(exception));
+    if (g_jit) {
+        const auto &regs = g_jit->Regs();
+        LOGE("  r0=0x%08x r1=0x%08x r2=0x%08x r3=0x%08x", regs[0], regs[1], regs[2], regs[3]);
+        LOGE("  r4=0x%08x r5=0x%08x r6=0x%08x r7=0x%08x", regs[4], regs[5], regs[6], regs[7]);
+        LOGE("  r8=0x%08x r9=0x%08x r10=0x%08x r11=0x%08x", regs[8], regs[9], regs[10], regs[11]);
+        LOGE("  ip=0x%08x sp=0x%08x lr=0x%08x pc=0x%08x cpsr=0x%08x", regs[12], regs[13], regs[14], regs[15], g_jit->Cpsr());
+    }
+}
 
 void GunBrosCallbacks::CallSVC(std::uint32_t swi) {
     if (swi == 0xffff) {

@@ -80,6 +80,8 @@ const char* path_mapper_normalize(const char *in_path, char *out_buf, size_t out
             }
         } else if (strncmp(in_path, "/sdcard/", 8) == 0 && strncmp(s_real_files_dir, "/storage/", 9) == 0) {
             snprintf(out_buf, out_sz, "/storage/emulated/0/%s", in_path + 8);
+        } else if (strncmp(in_path, "/Android/", 9) == 0 && strncmp(s_real_files_dir, "/storage/", 9) == 0) {
+            snprintf(out_buf, out_sz, "/storage/emulated/0/Android/%s", in_path + 9);
         } else {
             strncpy(out_buf, in_path, out_sz);
             out_buf[out_sz - 1] = '\0';

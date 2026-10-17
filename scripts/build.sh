@@ -15,6 +15,12 @@ fi
 
 BUILD_DIR="$PROJECT_ROOT/build/android"
 
+BRIDGE_DEBUG_FLAG=""
+if [[ "${BRIDGE_DEBUG:-0}" == "1" ]] || [[ "${1:-}" == "--debug" ]]; then
+    BRIDGE_DEBUG_FLAG="-DBRIDGE_DEBUG=ON"
+    echo "  Bridge Debug: ENABLED"
+fi
+
 echo "=== [GunBros Build] Starting ARM64 NDK CMake Build ==="
 echo "  NDK:      $NDK"
 echo "  CMake:    $CMAKE_BIN"
@@ -27,6 +33,7 @@ echo "  Boost:    $BOOST_ROOT"
   -DANDROID_PLATFORM=android-30 \
   -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_TESTING=OFF \
+  $BRIDGE_DEBUG_FLAG \
   -DDYNARMIC_ROOT="$DYNARMIC_ROOT" \
   -DBOOST_ROOT="$BOOST_ROOT" \
   -S "$PROJECT_ROOT"

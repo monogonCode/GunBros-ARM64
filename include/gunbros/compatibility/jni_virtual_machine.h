@@ -18,6 +18,7 @@ GUNBROS_EXTERN_C_BEGIN
 #define GUEST_RESDL_STRING  0x60002100u
 #define GUEST_EMPTY_STRING  0x60003000u
 #define GUEST_RESDL_BUF     0x60004000u
+#define GUEST_RESDL_BYTE_ARRAY 0x60004800u
 #define GUEST_WSTRING_BUF   0x60005000u
 #define GUEST_DIRECT_BUF    0x60006000u
 #define GUEST_TLS_BASE      0x60007000u
@@ -31,6 +32,7 @@ void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
 
 int safe_guest_snprintf(char *dst, size_t max_len, const char *fmt, uint32_t *reg_args, int reg_count, uint32_t sp);
 const char* jvm_get_last_string(void);
+const char* jvm_get_last_byte_array(void);
 
 GUNBROS_EXTERN_C_END
 

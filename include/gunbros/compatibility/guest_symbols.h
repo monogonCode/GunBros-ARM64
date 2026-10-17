@@ -11,7 +11,7 @@
  * libandroidplatformjni.so binary. If empty (""), a warning is logged.
  * If non-empty and the calculated hash does not match, patches are refused.
  */
-#define EXPECTED_GUEST_SHA256 ""
+#define EXPECTED_GUEST_SHA256 "e7b7f30b1dafb8381472b5d91184bb9ebd435c5a75952a4290d490254aec4c40"
 
 /* ========================================================================= */
 /* Application Lifecycle & JNI Entry Points (in guest ARM32 code)            */
@@ -138,5 +138,11 @@
 #define GUEST_PATCH_GAMESPY_NN_THINK      0x003cbc68u
 #define GUEST_PATCH_GAMESPY_GTI2_MOV      0x003c44f0u
 #define GUEST_PATCH_GAMESPY_GTI2_BX       0x003c44f4u
+
+/* Patch K: CProfileManager::LoginInitResourceLoaderCallback bypass server isReady to load local profile */
+#define GUEST_PATCH_PROFILE_LOGIN_INIT_LDR   0x0035c264u
+#define GUEST_PATCH_PROFILE_LOGIN_INIT_ADD   0x0035c268u
+#define GUEST_PATCH_PROFILE_LOGIN_INIT_LDR7  0x0035c26cu
+#define GUEST_PATCH_PROFILE_LOGIN_INIT_B     0x0035c270u
 
 #endif // GUNBROS_GUEST_SYMBOLS_H

@@ -100,6 +100,12 @@ static void legacy_apply_all(uint8_t *code_base) {
     *(uint32_t*)(code_base + 0x003cbc68) = 0xe12fff1e; // NNThink -> bx lr
     *(uint32_t*)(code_base + 0x003c44f0) = 0xe3a00000; // gti2ConnectionThink -> mov r0, #0
     *(uint32_t*)(code_base + 0x003c44f4) = 0xe12fff1e; // bx lr
+
+    // Patch K: CProfileManager::LoginInitResourceLoaderCallback bypass server isReady
+    *(uint32_t*)(code_base + 0x0035c264) = 0xe59f41d0; // ldr r4, [pc, #0x1d0]
+    *(uint32_t*)(code_base + 0x0035c268) = 0xe08f4004; // add r4, pc, r4
+    *(uint32_t*)(code_base + 0x0035c26c) = 0xe59f71cc; // ldr r7, [pc, #0x1cc]
+    *(uint32_t*)(code_base + 0x0035c270) = 0xea00001a; // b 0x0035c2e0
 }
 
 int main(void) {
@@ -112,6 +118,23 @@ int main(void) {
     // Pre-fill both buffers with arbitrary pattern (e.g. 0x55) to verify untouched areas remain identical
     memset(buf_legacy, 0x55, BUFFER_SIZE);
     memset(buf_new,    0x55, BUFFER_SIZE);
+
+    // Pre-fill patch locations with expected_old original bytes so that
+    // check_expected verification in game_patches_apply_all validates and succeeds
+    size_t patch_count = 0;
+    const game_patch_entry_t *patches = game_patches_get_table(&patch_count);
+    ASSERT_TRUE(patches != NULL && patch_count > 0, "patch_table", "Patch table is empty");
+
+    for (size_t i = 0; i < patch_count; i++) {
+        const game_patch_entry_t *p = &patches[i];
+        if (p->size == 1) {
+            buf_legacy[p->addr] = (uint8_t)p->expected_old;
+            buf_new[p->addr]    = (uint8_t)p->expected_old;
+        } else {
+            *(uint32_t*)(buf_legacy + p->addr) = p->expected_old;
+            *(uint32_t*)(buf_new + p->addr)    = p->expected_old;
+        }
+    }
 
     // Apply patches
     legacy_apply_all(buf_legacy);
@@ -155,11 +178,25 @@ int main(void) {
                 "helpers_equivalence", "guest_helpers_install differs between legacy and new!");
     TEST_PASS("game_patches_install_helpers byte-for-byte identical to legacy");
 
-    // Test expected_old verification safety
-    // Table entries with check_expected = true should reject patching when memory does not match
-    size_t patch_count = 0;
-    const game_patch_entry_t *patches = game_patches_get_table(&patch_count);
-    ASSERT_TRUE(patches != NULL && patch_count > 0, "patch_table", "Patch table is empty");
+    // Test expected_old verification safety:
+    // A corrupted memory location must NOT be patched when check_expected = true
+    uint8_t *corrupted_buf = (uint8_t*)malloc(BUFFER_SIZE);
+    ASSERT_TRUE(corrupted_buf != NULL, "corrupt_alloc", "Failed to allocate buffer");
+    memset(corrupted_buf, 0xaa, BUFFER_SIZE);
+    game_patches_apply_all(corrupted_buf);
+    // Verify that none of the checked patches were applied
+    for (size_t i = 0; i < patch_count; i++) {
+        const game_patch_entry_t *p = &patches[i];
+        if (p->check_expected) {
+            if (p->size == 1) {
+                ASSERT_TRUE(corrupted_buf[p->addr] == 0xaa, "safety_check_1", "Corrupted memory was patched despite check_expected!");
+            } else {
+                ASSERT_TRUE(*(uint32_t*)(corrupted_buf + p->addr) == 0xaaaaaaaa, "safety_check_4", "Corrupted memory was patched despite check_expected!");
+            }
+        }
+    }
+    free(corrupted_buf);
+    TEST_PASS("check_expected safety abort successfully verified (no patches applied on mismatched bytes)");
     TEST_PASS("game_patches_get_table exposes valid table entries");
 
     free(buf_legacy);
