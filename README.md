@@ -113,7 +113,7 @@ Conecta tu dispositivo Android mediante USB con depuración ADB activa:
 
 ## Estado del Sistema de Archivos y Persistencia
 
-Tras la auditoría y corrección en la revisión de octubre de 2026, se corrigieron los siguientes defectos críticos en la capa HLE de archivos y memoria:
+Tras las comprobaciones y corrección en la ultima revisión, se corrigieron los siguientes defectos críticos en la capa HLE de archivos y memoria:
 
 1. **Corrección de signo en `h_fseek`**: Se corrigió el casteo que transformaba offsets negativos del guest (utilizados habitualmente con `SEEK_END` o `SEEK_CUR`) en enteros positivos de 64 bits (~4 GB), provocando lecturas vacías posteriores.
 2. **Aislamiento de ancho en `h_time`**: Se corrigió la escritura de `time_t` de 64 bits del host que desbordaba sobre la memoria contigua del guest de 32 bits. Ahora se escribe estrictamente un `uint32_t`.
@@ -125,7 +125,7 @@ Tras la auditoría y corrección en la revisión de octubre de 2026, se corrigie
 
 ---
 
-## Índice de Documentación Técnica
+## Índice de Documentación
 
 Para comprender a fondo cada aspecto del proyecto, consulta las guías dedicadas en la carpeta `docs/`:
 
