@@ -145,6 +145,22 @@ static bool run_guest_save_sequence(const char *filename) {
     return true;
 }
 
+static void create_synthetic_fixture(const char *path, size_t size) {
+    FILE *f = fopen(path, "wb");
+    if (!f) return;
+    uint8_t *dummy = (uint8_t*)malloc(size);
+    if (dummy) {
+        memset(dummy, 0, size);
+        memcpy(dummy, "GBRS\x01\x00\x00\x00", 8);
+        for (size_t i = 8; i < size; i++) {
+            dummy[i] = (uint8_t)(i ^ 0xAA);
+        }
+        fwrite(dummy, 1, size, f);
+        free(dummy);
+    }
+    fclose(f);
+}
+
 int main(int argc, char **argv) {
     printf("=== Running Golden Save Runner ===\n");
 
@@ -157,20 +173,26 @@ int main(int argc, char **argv) {
     guest_memory_init();
     path_mapper_set_base_dir(".");
 
+    // 1. Always execute full sequence on a structured synthetic fixture
+    const char *synth_path = "/tmp/gunbros_golden_synthetic.dat";
+    create_synthetic_fixture(synth_path, 1024);
+    bool synth_ok = run_guest_save_sequence(synth_path);
+    remove(synth_path);
+    ASSERT_TRUE(synth_ok, "golden_save_runner", "failed to run guest save sequence on synthetic fixture");
+    TEST_PASS("golden_save_runner (synthetic save fixture full I/O cycle verified)");
+
+    // 2. If real golden save dump is present, test it as well
     struct stat st;
-    if (stat(golden_file, &st) != 0) {
-        printf("[GOLDEN] Golden save file '%s' not present.\n", golden_file);
+    if (stat(golden_file, &st) == 0) {
+        bool ok = run_guest_save_sequence(golden_file);
+        ASSERT_TRUE(ok, "golden_save_runner", "failed to run guest save sequence on real save dump");
+        TEST_PASS("golden_save_runner with real save dump verified");
+    } else {
+        printf("[GOLDEN] Real dump '%s' not present.\n", golden_file);
         printf("[GOLDEN] (As per project rules, proprietary save files are not committed to git).\n");
         printf("[GOLDEN] To test real game saves, see tests/golden/README.md.\n");
-        TEST_PASS("golden_save_runner (skipped real dump, runner validated)");
-        guest_memory_release();
-        return 0;
     }
 
-    bool ok = run_guest_save_sequence(golden_file);
-    ASSERT_TRUE(ok, "golden_save_runner", "failed to run guest save sequence");
-
-    TEST_PASS("golden_save_runner with real save dump");
     guest_memory_release();
     return 0;
 }

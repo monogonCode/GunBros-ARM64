@@ -35,6 +35,7 @@ void hle_register_module(const hle_def_t *defs, size_t count);
 int  hle_resolve_import(const char *name);
 int  hle_find_plt_index(const char *name);
 const char* hle_get_plt_name(int idx);
+hle_fn hle_get_handler(int idx);
 
 void on_dynarmic_svc(uint32_t swi);
 run_result_t run_guest(uint32_t entry, const char *tag);

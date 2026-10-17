@@ -10,6 +10,10 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+set(GUNBROS_COMMON_SOURCES
+    src/common/sha256.c
+)
+
 # Common sources shared across bridge and tests
 set(GUNBROS_FS_SOURCES
     src/filesystem/path_mapper.c
@@ -110,6 +114,7 @@ if(ANDROID OR CMAKE_SYSTEM_NAME STREQUAL "Android")
     )
 
     add_library(androidplatformjni SHARED
+        ${GUNBROS_COMMON_SOURCES}
         ${GUNBROS_FS_SOURCES}
         ${GUNBROS_PLATFORM_SOURCES}
         ${GUNBROS_COMPAT_SOURCES}
@@ -191,4 +196,32 @@ if(BUILD_TESTING)
     target_include_directories(golden_save_runner PRIVATE include src/hle)
     target_link_libraries(golden_save_runner PRIVATE gunbros_fs_core m)
     add_test(NAME golden_save_runner COMMAND golden_save_runner)
+
+    add_executable(test_sha256
+        tests/common/test_sha256.c
+        src/common/sha256.c
+    )
+    target_include_directories(test_sha256 PRIVATE include)
+    add_test(NAME test_sha256 COMMAND test_sha256)
+
+    add_executable(test_patch_equivalence
+        tests/compatibility/test_patch_equivalence.c
+        src/compatibility/game_patches.c
+    )
+    target_include_directories(test_patch_equivalence PRIVATE include)
+    add_test(NAME test_patch_equivalence COMMAND test_patch_equivalence)
+
+    add_executable(test_hle_resolution
+        tests/hle/test_hle_resolution.c
+        src/hle/hle_table.c
+        src/hle/libc_string.c
+        src/hle/libc_time.c
+        src/hle/libc_stdio.c
+        src/hle/net_stubs.c
+        src/hle/gles1.c
+        src/emulator/guest_memory.c
+    )
+    target_include_directories(test_hle_resolution PRIVATE include src/hle)
+    target_link_libraries(test_hle_resolution PRIVATE gunbros_fs_core m)
+    add_test(NAME test_hle_resolution COMMAND test_hle_resolution)
 endif()

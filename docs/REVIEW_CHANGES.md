@@ -3,7 +3,7 @@
 **Fecha de finalización**: Octubre 2026  
 **Rama de trabajo**: `refactor/review-2026-10`  
 **Etiqueta de archivo**: `legacy-archive`  
-**Estado de pruebas**: 7/7 superadas (100% CTest pass rate)  
+**Estado de pruebas**: 10/10 superadas (100% CTest pass rate)  
 **Estado de compilación NDK**: Exitosa (`build/android/libandroidplatformjni.so` y `GunBros_Android16_Dynarmic.apk` generados)
 
 ---
@@ -139,9 +139,17 @@
   * **Commit**: `63bf1be test(fs): rename persistence test to test_host_io_persistence and add golden save runner with docs (4.2)`
 
 * **4.3 Integración de pruebas en CMake/CTest y ejecución aislada**:
-  * **Acción**: Se registraron todas las pruebas en `CMakeLists.txt` (7 suites en total: `test_path_mapper`, `test_file_operations`, `test_host_io_persistence`, `test_pcm_ring`, `test_guest_memory`, `test_hle_libc`, `golden_save_runner`). Se añadió limpieza y aislamiento de carpetas temporales (`/tmp/gunbros_*`) en `scripts/run_tests.sh`.
-  * **Verificación**: `./scripts/run_tests.sh` ejecuta las 7 pruebas con éxito.
+  * **Acción**: Se registraron las pruebas base en `CMakeLists.txt` con aislamiento y limpieza de temporales (`/tmp/gunbros_*`) en `scripts/run_tests.sh`.
+  * **Verificación**: `./scripts/run_tests.sh` ejecuta la suite completa con éxito.
   * **Commit**: `43f571b test(ci): register new test targets in CMake and ensure run_tests.sh executes suite with isolation (4.3)`
+
+* **4.4 Suites de Verificación Cruzada y Equivalencia Estricta (Revisión Técnica)**:
+  * **Acción**: En respuesta a la auditoría técnica para blindar los cambios de mayor riesgo sin depender de dispositivo físico:
+    1. **`test_patch_equivalence`**: Se contrastó en host la tabla de parches (`game_patches_apply_all`) frente a la lógica original de `legacy-archive` sobre búferes de 5 MB, certificando equivalencia byte a byte (0 bytes de diferencia en 5.242.880 bytes analizados).
+    2. **`test_hle_resolution`**: Se verificó la resolución dinámica por nombre de los 178 símbolos importados del ELF original (`s_plt_names`), garantizando que cada símbolo resuelve a un puntero de función no nulo y que las consultas repetidas son idempotentes.
+    3. **`test_sha256`**: Se extrajo la implementación de SHA-256 en C99 a `src/common/sha256.c` y se verificó contra los vectores oficiales NIST / RFC 6234 (cadena vacía, "abc", vector de 56 bytes en límite de bloque y streaming por trozos).
+    4. **`golden_save_runner`**: Se actualizó para generar un fixture binario sintético y validar siempre el ciclo completo de 8 operaciones de E/S del guest (`stat`, `fopen`, `fseek`, `ftell`, `fread`, `fwrite`, `rename`, `remove`) en cada ejecución de CTest, ejecutando adicionalmente sobre `savegame.dat` si está presente.
+  * **Verificación**: CTest ejecuta 10 de 10 pruebas con 100% de éxito.
 
 ---
 
@@ -212,6 +220,10 @@ Los siguientes puntos han sido preparados técnicamente pero requieren aportaci�
    * *Estado actual*: Archivo `LICENSE` con texto de reserva legal y aviso de derechos de autor.
    * *Acción requerida*: El autor debe definir la licencia de código abierto deseada (MIT, Apache 2.0, GPLv2/v3). Téngase en cuenta que la dependencia `Dynarmic` está licenciada bajo BSD-3-Clause.
 
-5. **Aportación de Volcado de Guardado para Prueba Golden (`tests/golden/`)**:
-   * *Estado actual*: `golden_save_runner.c` y su documentación están listos y se integran en CTest pasando de forma stubbed si no hay savegame presente.
-   * *Acción requerida*: Extraer un `savegame.dat` de una partida real y ubicarlo en `tests/golden/savegame.dat` para ejecutar la validación completa en el runner.
+5. **Aportación de Volcado de Guardado Real (`tests/golden/`)**:
+   * *Estado actual*: `golden_save_runner.c` ejecuta y valida el ciclo completo de E/S con un fixture sintético en cada test, y ejecutará adicionalmente la validación sobre `tests/golden/savegame.dat` cuando esté disponible.
+   * *Acción requerida*: Extraer un `savegame.dat` de una partida real y ubicarlo en `tests/golden/savegame.dat` para ejecutar la validación con datos reales del juego.
+
+6. **Publicación en GitHub e Historial de Binarios Pasados**:
+   * *Estado actual*: En la rama actual `refactor/review-2026-10`, el árbol de trabajo y el índice de Git están 100% limpios de archivos `.so` y `.apk` (`git ls-files` no rastrea ningún binario). Sin embargo, en commits históricos anteriores al inicio de este refactor (`f0243d9`, `a0f6da3`, `6148f65` en `main`) existían binarios rastreados.
+   * *Acción requerida*: Antes de hacer público el repositorio en GitHub, si se desea un historial completamente purgado de blobs pesados pasados, el autor puede ejecutar `git filter-repo --invert-paths --path-glob '*.so' --path-glob '*.apk'` o publicar un repositorio nuevo inicializado desde esta rama limpia.

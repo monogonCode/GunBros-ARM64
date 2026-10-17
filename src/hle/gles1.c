@@ -1,7 +1,7 @@
 #include "hle_internal.h"
-#include "gunbros/platform/android_window.h"
 
 #ifdef __ANDROID__
+#include "gunbros/platform/android_window.h"
 #include <GLES/gl.h>
 #define GL_GLEXT_PROTOTYPES 1
 #include <GLES/glext.h>

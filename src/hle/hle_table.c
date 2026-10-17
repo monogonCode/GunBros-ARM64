@@ -107,6 +107,13 @@ const char* hle_get_plt_name(int idx) {
     return "unknown";
 }
 
+hle_fn hle_get_handler(int idx) {
+    if (idx >= 0 && idx < s_stub_count) {
+        return s_stubs[idx].fn;
+    }
+    return NULL;
+}
+
 static uint64_t now_ns(void) {
     struct timespec ts;
     if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) return 0;
