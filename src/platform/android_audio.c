@@ -151,6 +151,8 @@ void audio_pump_locked(gunbros_audio_mix_fn mix_fn, void *user_data) {
 }
 
 void audio_feed_pcm_java(JNIEnv *env, jbyteArray array, jint len, gunbros_audio_mix_fn mix_fn, void *user_data) {
+    (void)mix_fn;
+    (void)user_data;
     if (env == NULL || array == NULL || len <= 0) return;
     jsize array_len = (*env)->GetArrayLength(env, array);
     if ((*env)->ExceptionCheck(env) || array_len <= 0) return;
@@ -162,9 +164,6 @@ void audio_feed_pcm_java(JNIEnv *env, jbyteArray array, jint len, gunbros_audio_
     uint8_t pcm[BRIDGE_PCM_MAX_BYTES];
     size_t got = pcm_ring_read(&s_pcm_ring, pcm, req);
 
-    if (got < req && mix_fn != NULL && s_sound_engine_ready) {
-        got += mix_fn(pcm + got, req - got, user_data);
-    }
     if (got < req) {
         memset(pcm + got, 0, req - got);
         s_pcm_ring.underruns++;
