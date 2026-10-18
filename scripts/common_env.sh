@@ -112,7 +112,18 @@ fi
 
 # 8. Resolver Dynarmic y Boost
 DYNARMIC_ROOT="$(resolve_path "${DYNARMIC_ROOT:-$PROJECT_ROOT/third_party/dynarmic}")"
-BOOST_ROOT="$(resolve_path "${BOOST_ROOT:-$PROJECT_ROOT/third_party/boost/usr/include}")"
+BOOST_CANDIDATE="$(resolve_path "${BOOST_ROOT:-}")"
+if [[ -n "$BOOST_CANDIDATE" && -d "$BOOST_CANDIDATE" ]]; then
+    BOOST_ROOT="$BOOST_CANDIDATE"
+elif [[ -d "$PROJECT_ROOT/third_party/boost/usr/include" ]]; then
+    BOOST_ROOT="$PROJECT_ROOT/third_party/boost/usr/include"
+elif [[ -d "$PROJECT_ROOT/third_party/boost/include" ]]; then
+    BOOST_ROOT="$PROJECT_ROOT/third_party/boost/include"
+elif [[ -d "/usr/include/boost" ]]; then
+    BOOST_ROOT="/usr/include"
+else
+    BOOST_ROOT="$PROJECT_ROOT/third_party/boost/include"
+fi
 
 # 9. Flags de instalación ADB para Android 14+
 ADB_INSTALL_FLAGS="${ADB_INSTALL_FLAGS:---no-incremental --bypass-low-target-sdk-block -r -d}"

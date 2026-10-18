@@ -73,9 +73,11 @@ gunbros/
 ## Inicio Rápido
 
 ### 1. Configurar Entorno y Dependencias
-Verifica las herramientas de tu sistema y genera el archivo `.env` automáticamente:
+Verifica las herramientas de tu sistema y descarga/configura dependencias faltantes automáticamente:
 ```bash
 ./setup.sh
+# O para descarga automática desatendida de NDK, Build-Tools, Boost y Dynarmic:
+./setup.sh --download
 ```
 
 ### 2. Generar la Plantilla Base (`base_template.apk`)

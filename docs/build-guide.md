@@ -31,17 +31,26 @@ Esta guía describe cómo compilar el proyecto tanto en modo local (para ejecuta
 
 El proyecto utiliza un sistema de configuración mediante `.env` (similar a herramientas como Node.js o Python) para que cualquier persona pueda ejecutarlo sin modificar archivos internos.
 
-### 2.1. Verificación Automática con `./setup.sh`
+### 2.1. Verificación e Instalación Automática con `./setup.sh`
 La forma más rápida de preparar el entorno es ejecutar:
 ```bash
 ./setup.sh
 ```
-Este script:
-1. Crea tu archivo `.env` automáticamente a partir de `.env.example` si no existe.
-2. Comprueba las herramientas básicas del sistema (CMake, Make/Ninja, Compilador, Zip, ADB).
-3. Verifica la ruta al Android NDK y las Android SDK Build-Tools.
-4. Genera automáticamente un keystore de depuración (`debug.keystore`) si no tienes uno.
-5. Comprueba la presencia de Dynarmic y Boost en `third_party/`.
+Si se detecta que faltan dependencias (CMake portátil, Android NDK, Android Build-Tools, Boost o Dynarmic), el script te preguntará interactivamente si deseas descargarlas y compilarlas automáticamente.
+
+También puedes forzar la descarga y configuración desatendida directamente con:
+```bash
+./setup.sh --download
+```
+Este proceso automatizado:
+1. Crea tu archivo `.env` automáticamente si no existe.
+2. Descarga CMake portátil (si no está en el sistema).
+3. Descarga Android SDK Build-Tools 34.0.0 (`zipalign`, `apksigner`, `aapt`).
+4. Descarga Android NDK r26d oficial de Google.
+5. Descarga las cabeceras de Boost C++.
+6. Clona Dynarmic desde GitHub y compila sus bibliotecas estáticas para arquitectura `arm64-v8a`.
+7. Genera un keystore de depuración (`debug.keystore`) si no tienes uno.
+8. Configura las rutas relativas en `.env` para que todo quede listo para compilar.
 
 ### 2.2. Personalización Manual mediante `.env`
 Si deseas personalizar rutas específicas para tu máquina, edita `.env`:

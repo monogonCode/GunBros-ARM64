@@ -20,6 +20,11 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Si se pasa --download o --install, ejecutar el instalador primero
+if [[ "${1:-}" == "--download" || "${1:-}" == "--install" || "${1:-}" == "-i" ]]; then
+    "$SCRIPT_DIR/download_deps.sh"
+fi
+
 echo -e "${BLUE}=== [GunBros Setup] Comprobando Dependencias del Proyecto ===${NC}"
 
 # 1. Asegurar archivo .env
@@ -144,6 +149,18 @@ if [ "$ALL_OK" = true ]; then
     echo -e "  ${YELLOW}./scripts/run_tests.sh${NC}"
 else
     echo -e "${YELLOW}Se detectaron dependencias faltantes.${NC}"
-    echo -e "Revisa los elementos marcados con [✗] arriba y ajusta tu archivo .env según sea necesario."
+    echo -e "Puedes descargarlas y configurarlas automáticamente ejecutando:"
+    echo -e "  ${YELLOW}./setup.sh --download${NC}"
+    
+    # Si la sesión es interactiva, ofrecer descarga inmediata
+    if [[ -t 0 ]]; then
+        echo -e ""
+        read -r -p "¿Deseas descargar y compilar automáticamente las dependencias faltantes ahora? [s/N]: " REPLY || true
+        if [[ "$REPLY" =~ ^[sSyY]$ ]]; then
+            "$SCRIPT_DIR/download_deps.sh"
+            echo -e "\n${BLUE}Reverificando dependencias tras la instalación...${NC}"
+            exec "$0" "$@"
+        fi
+    fi
 fi
 echo -e "${BLUE}==============================================================================${NC}"
