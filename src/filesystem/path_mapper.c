@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 static char s_real_files_dir[GUNBROS_PATH_MAX] = "/sdcard/Android/data/com.glu.android.gunbros_free/files/";
+static char s_real_save_dir[GUNBROS_PATH_MAX] = "";
 
 void path_mapper_set_base_dir(const char *dir) {
     if (!dir || dir[0] == '\0') return;
@@ -22,6 +23,25 @@ void path_mapper_set_base_dir(const char *dir) {
 
 const char* path_mapper_get_base_dir(void) {
     return s_real_files_dir;
+}
+
+void path_mapper_set_save_dir(const char *dir) {
+    if (!dir || dir[0] == '\0') return;
+    size_t len = strlen(dir);
+    if (len >= sizeof(s_real_save_dir) - 2) {
+        len = sizeof(s_real_save_dir) - 2;
+    }
+    memcpy(s_real_save_dir, dir, len);
+    if (len > 0 && s_real_save_dir[len - 1] != '/') {
+        s_real_save_dir[len] = '/';
+        s_real_save_dir[len + 1] = '\0';
+    } else {
+        s_real_save_dir[len] = '\0';
+    }
+}
+
+const char* path_mapper_get_save_dir(void) {
+    return s_real_save_dir;
 }
 
 const char* path_mapper_normalize(const char *in_path, char *out_buf, size_t out_sz) {
@@ -101,6 +121,18 @@ const char* path_mapper_normalize(const char *in_path, char *out_buf, size_t out
                 strncpy(out_buf, candidate, out_sz);
                 out_buf[out_sz - 1] = '\0';
             }
+        }
+    }
+
+    // Alias/fallback: if target doesn't exist in base files dir, check internal save dir (e.g. app_save)
+    if (s_real_save_dir[0] != '\0' && access(out_buf, F_OK) != 0) {
+        const char *fname = strrchr(out_buf, '/');
+        fname = fname ? fname + 1 : out_buf;
+        char candidate_save[GUNBROS_PATH_MAX];
+        snprintf(candidate_save, sizeof(candidate_save), "%s%s", s_real_save_dir, fname);
+        if (access(candidate_save, F_OK) == 0) {
+            strncpy(out_buf, candidate_save, out_sz);
+            out_buf[out_sz - 1] = '\0';
         }
     }
 

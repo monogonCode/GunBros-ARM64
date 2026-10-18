@@ -126,6 +126,29 @@ static bool jni_method_enable_multitouch(const jni_call_context_t *ctx) {
     return true;
 }
 
+static bool jni_method_set_tick_rate(const jni_call_context_t *ctx) {
+    uint32_t rate = get_jni_method_arg(ctx->idx, *ctx->r3, ctx->sp, 0);
+    LOGI("[JNI] SetTickRate called with rate=%u ms", rate);
+    JNIEnv *real_env = platform_get_env();
+    jobject real_callback = platform_get_callback();
+    if (real_env && real_callback) {
+        jclass cls = (*real_env)->GetObjectClass(real_env, real_callback);
+        jmethodID mid = (*real_env)->GetMethodID(real_env, cls, "SetTickRate", "(I)V");
+        if (mid) {
+            (*real_env)->CallVoidMethod(real_env, real_callback, mid, (jint)rate);
+            LOGI("[JNI] Forwarded SetTickRate(%u) to Java GluCallback", rate);
+        }
+    }
+    *ctx->r0 = 0;
+    return true;
+}
+
+static bool jni_method_start_movie_activity(const jni_call_context_t *ctx) {
+    LOGI("[JNI] StartMovieActivity called - returning false to skip intro video and enter main menu shell");
+    *ctx->r0 = 0;
+    return true;
+}
+
 static bool jni_method_return_false(const jni_call_context_t *ctx) {
     *ctx->r0 = 0;
     return true;
@@ -148,6 +171,8 @@ static const jni_method_entry_t s_jni_method_table[] = {
     { "resdlEvent",               jni_method_resdl_event },
     { "GetDeviceAvailableMemory", jni_method_get_device_available_memory },
     { "EnableMultipleTouch",      jni_method_enable_multitouch },
+    { "SetTickRate",              jni_method_set_tick_rate },
+    { "StartMovieActivity",       jni_method_start_movie_activity },
 
     /* Feature queries returning false */
     { "IsPSP",                    jni_method_return_false },

@@ -25,6 +25,7 @@ void window_screen_to_game(int sx, int sy, int *gx, int *gy);
 void window_clear_bars(void);
 
 void window_set_surface(JNIEnv *env, jobject holder);
+void window_check_surface(JNIEnv *env);
 bool window_ensure_egl(void);
 void window_swap_buffers(void);
 void window_release(void);

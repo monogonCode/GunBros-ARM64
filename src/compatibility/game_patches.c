@@ -37,12 +37,6 @@ static const game_patch_entry_t s_game_patches[] = {
     /* Patch G: CResourceLoader::Init (hooks into Trampoline G) */
     { GUEST_PATCH_RESLOADER_INIT,      true, 0xe92d41f0, 0xea0625cb, 4, "CResourceLoader::Init trampoline branch" },
 
-    /* Patch H: CMenuNavigationBar button label / metrics offsets */
-    { GUEST_PATCH_NAV_BAR_LABEL_R10,   true, 0xe3a0a008, 0xe3a0a007, 4, "CMenuNavigationBar label r10=7" },
-    { GUEST_PATCH_NAV_BAR_SUB_R7,      true, 0xe2417008, 0xe2417007, 4, "CMenuNavigationBar label sub r7, r1, 7" },
-    { GUEST_PATCH_NAV_BAR_WARBUCKS,    true, 0xe3a01010, 0xe3a0100e, 4, "CMenuNavigationBar warbucks r1=14" },
-    { GUEST_PATCH_NAV_BAR_COINS,       true, 0xe3a01011, 0xe3a0100f, 4, "CMenuNavigationBar coins r1=15" },
-    { GUEST_PATCH_NAV_BAR_GUNBADGE,    true, 0xe3a01012, 0xe3a01010, 4, "CMenuNavigationBar gunbadge r1=16" },
 
     /* Patch I: CFileMgr_Android local file operations */
     { GUEST_PATCH_FILEMGR_LOCAL_DATA,  true, 0x0a000025, 0xe1a00000, 4, "CFileMgr_Android skip data: strip nop" },

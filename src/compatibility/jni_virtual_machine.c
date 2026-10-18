@@ -94,8 +94,21 @@ const char* jvm_get_method_name(uint32_t id) {
     return "unknown";
 }
 
+static inline bool is_frequent_jni_method_name(const char *name) {
+    if (!name) return false;
+    return (strcmp(name, "getSystemService") == 0 ||
+            strcmp(name, "getActiveNetworkInfo") == 0 ||
+            strcmp(name, "isAvailable") == 0 ||
+            strcmp(name, "interfaceIsOpen") == 0 ||
+            strcmp(name, "canDisplayInterface") == 0 ||
+            strcmp(name, "tick") == 0 ||
+            strcmp(name, "eglGetError") == 0 ||
+            strcmp(name, "GetDeviceOrientation") == 0);
+}
+
 static inline bool is_frequent_jni_method(uint32_t mid) {
-    return (mid == 0x27 || mid == 0x44 || mid == 0x4d || mid == 0x34 || mid == 0x4a);
+    const char *name = jvm_get_method_name(mid);
+    return is_frequent_jni_method_name(name);
 }
 
 void handle_jvm_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t *r3, uint32_t sp, uint32_t lr) {
@@ -136,8 +149,13 @@ void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
         case 31: // GetObjectClass
         {
             const char *cname = (const char*)guest_to_host(*r1);
-            if (idx == 6) {
-                DLOG("JNI FindClass: '%s'", cname ? cname : "NULL");
+            if (idx == 6 && cname) {
+                if (strcmp(cname, "com/glu/platform/android/GluPlatformActivity") != 0 &&
+                    strcmp(cname, "android/net/ConnectivityManager") != 0 &&
+                    strcmp(cname, "android/net/NetworkInfo") != 0 &&
+                    strcmp(cname, "com/glu/tools/tapjoy/TapjoyInterface") != 0) {
+                    DLOG("JNI FindClass: '%s'", cname);
+                }
             }
             *r0 = 0x00001111;
             break;
@@ -175,7 +193,9 @@ void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
             const char *name = (const char*)guest_to_host(*r2);
             const char *sig = (const char*)guest_to_host(*r3);
             int mid = jvm_register_method(name, sig);
-            DLOG("JNI Get%sMethodID: '%s' ('%s') -> 0x%x", (idx == 113 ? "Static" : ""), name ? name : "NULL", sig ? sig : "NULL", mid);
+            if (!is_frequent_jni_method_name(name)) {
+                DLOG("JNI Get%sMethodID: '%s' ('%s') -> 0x%x", (idx == 113 ? "Static" : ""), name ? name : "NULL", sig ? sig : "NULL", mid);
+            }
             *r0 = (uint32_t)mid;
             break;
         }

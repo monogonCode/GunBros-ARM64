@@ -1,5 +1,6 @@
 #include "gunbros/bridge/jni_exports.h"
 #include "gunbros/bridge/bridge_core.h"
+#include "gunbros/filesystem/path_mapper.h"
 #include "gunbros/platform/jni_env_helper.h"
 #include "gunbros/platform/android_window.h"
 #include "gunbros/platform/android_audio.h"
@@ -36,7 +37,7 @@ JNIEXPORT void JNICALL Java_com_glu_platform_android_GluPlatformActivityJNI_init
     jstring s7, jstring s8, jstring s9, jstring s10,
     jint i1, jint i2, jint i3, jint i4, jstring s11) {
     (void)thiz; (void)handler;
-    (void)s1; (void)s2; (void)s3; (void)s4; (void)s5; (void)s6;
+    (void)s3; (void)s4; (void)s5; (void)s6;
     (void)b1; (void)b2; (void)b3;
     (void)s7; (void)s8; (void)s9; (void)s10;
     (void)i1; (void)i2; (void)i3; (void)i4; (void)s11;
@@ -46,6 +47,23 @@ JNIEXPORT void JNICALL Java_com_glu_platform_android_GluPlatformActivityJNI_init
         JavaVM *jvm = NULL;
         (*env)->GetJavaVM(env, &jvm);
         platform_set_jvm(jvm);
+
+        if (s1 != NULL) {
+            const char *cs1 = (*env)->GetStringUTFChars(env, s1, NULL);
+            if (cs1) {
+                path_mapper_set_save_dir(cs1);
+                LOGI("JNI initialise: registered internal save dir: '%s'", cs1);
+                (*env)->ReleaseStringUTFChars(env, s1, cs1);
+            }
+        }
+        if (s2 != NULL) {
+            const char *cs2 = (*env)->GetStringUTFChars(env, s2, NULL);
+            if (cs2) {
+                path_mapper_set_base_dir(cs2);
+                LOGI("JNI initialise: registered external files dir: '%s'", cs2);
+                (*env)->ReleaseStringUTFChars(env, s2, cs2);
+            }
+        }
     }
     bridge_init(env, context);
 }
@@ -64,13 +82,17 @@ JNIEXPORT void JNICALL Java_com_glu_platform_android_GluPlatformActivityJNI_setW
 
 JNIEXPORT void JNICALL Java_com_glu_platform_android_GluPlatformActivityJNI_surfaceCreated(
     JNIEnv *env, jobject thiz, jint id) {
-    (void)env; (void)thiz;
+    (void)thiz;
+    LOGI("GluPlatformActivityJNI_surfaceCreated called");
+    if (env) window_check_surface(env);
     bridge_on_surface_created(id);
 }
 
 JNIEXPORT void JNICALL Java_com_glu_platform_android_GluPlatformActivityJNI_surfaceChanged(
     JNIEnv *env, jobject thiz, jint id, jint format, jint w, jint h) {
-    (void)env; (void)thiz;
+    (void)thiz;
+    LOGI("GluPlatformActivityJNI_surfaceChanged called: format=%d w=%d h=%d", format, w, h);
+    if (env) window_check_surface(env);
     bridge_on_surface_changed(id, format, w, h);
 }
 

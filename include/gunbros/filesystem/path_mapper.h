@@ -10,6 +10,9 @@ GUNBROS_EXTERN_C_BEGIN
 void path_mapper_set_base_dir(const char *dir);
 const char* path_mapper_get_base_dir(void);
 
+void path_mapper_set_save_dir(const char *dir);
+const char* path_mapper_get_save_dir(void);
+
 /**
  * Normalizes an incoming game path into the real canonical storage path.
  * Applies Glu-specific rules:

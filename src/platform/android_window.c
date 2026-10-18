@@ -1,4 +1,5 @@
 #include "gunbros/platform/android_window.h"
+#include "gunbros/platform/jni_env_helper.h"
 #include <pthread.h>
 
 #ifdef __ANDROID__
@@ -24,6 +25,7 @@ static EGLContext s_context = EGL_NO_CONTEXT;
 static ANativeWindow* s_window = NULL;
 static ANativeWindow* s_new_window = NULL;
 static bool s_window_changed = false;
+static jobject s_holder_global = NULL;
 #endif
 
 void window_init(void) {
@@ -122,31 +124,58 @@ void window_clear_bars(void) {
 #endif
 }
 
-void window_set_surface(JNIEnv *env, jobject holder) {
+void window_check_surface(JNIEnv *env) {
 #ifdef __ANDROID__
-    if (holder != NULL && env != NULL) {
-        jclass holderClass = (*env)->GetObjectClass(env, holder);
-        jmethodID getSurface = (*env)->GetMethodID(env, holderClass, "getSurface", "()Landroid/view/Surface;");
-        if (getSurface != NULL) {
-            jobject surface = (*env)->CallObjectMethod(env, holder, getSurface);
-            if (surface != NULL) {
-                jclass surfClass = (*env)->GetObjectClass(env, surface);
-                jmethodID isValidMethod = (*env)->GetMethodID(env, surfClass, "isValid", "()Z");
-                jboolean valid = JNI_TRUE;
-                if (isValidMethod != NULL) {
-                    valid = (*env)->CallBooleanMethod(env, surface, isValidMethod);
-                }
-                if (valid) {
+    if (!env) return;
+    pthread_mutex_lock(&s_egl_mutex);
+    jobject holder = s_holder_global;
+    pthread_mutex_unlock(&s_egl_mutex);
+    if (!holder) return;
+
+    jclass holderClass = (*env)->GetObjectClass(env, holder);
+    jmethodID getSurface = (*env)->GetMethodID(env, holderClass, "getSurface", "()Landroid/view/Surface;");
+    if (getSurface != NULL) {
+        jobject surface = (*env)->CallObjectMethod(env, holder, getSurface);
+        if (surface != NULL) {
+            jclass surfClass = (*env)->GetObjectClass(env, surface);
+            jmethodID isValidMethod = (*env)->GetMethodID(env, surfClass, "isValid", "()Z");
+            jboolean valid = JNI_TRUE;
+            if (isValidMethod != NULL) {
+                valid = (*env)->CallBooleanMethod(env, surface, isValidMethod);
+            }
+            if (valid) {
+                ANativeWindow *win = ANativeWindow_fromSurface(env, surface);
+                if (win != NULL) {
                     pthread_mutex_lock(&s_egl_mutex);
-                    ANativeWindow *win = ANativeWindow_fromSurface(env, surface);
-                    if (win != NULL) {
+                    if (win != s_window && win != s_new_window) {
                         s_new_window = win;
                         s_window_changed = true;
+                        LOGI("window_check_surface: Valid ANativeWindow acquired: %p", win);
+                    } else {
+                        ANativeWindow_release(win);
                     }
                     pthread_mutex_unlock(&s_egl_mutex);
                 }
             }
         }
+    }
+#else
+    (void)env;
+#endif
+}
+
+void window_set_surface(JNIEnv *env, jobject holder) {
+#ifdef __ANDROID__
+    if (holder != NULL && env != NULL) {
+        pthread_mutex_lock(&s_egl_mutex);
+        if (s_holder_global != NULL) {
+            (*env)->DeleteGlobalRef(env, s_holder_global);
+            s_holder_global = NULL;
+        }
+        s_holder_global = (*env)->NewGlobalRef(env, holder);
+        pthread_mutex_unlock(&s_egl_mutex);
+
+        window_check_surface(env);
     }
 #else
     (void)env; (void)holder;
@@ -155,6 +184,17 @@ void window_set_surface(JNIEnv *env, jobject holder) {
 
 bool window_ensure_egl(void) {
 #ifdef __ANDROID__
+    pthread_mutex_lock(&s_egl_mutex);
+    bool need_check = (s_window == NULL && s_new_window == NULL && s_holder_global != NULL);
+    pthread_mutex_unlock(&s_egl_mutex);
+
+    if (need_check) {
+        JNIEnv *env = platform_get_env();
+        if (env) {
+            window_check_surface(env);
+        }
+    }
+
     pthread_mutex_lock(&s_egl_mutex);
     if (s_window_changed) {
         if (s_surface != EGL_NO_SURFACE) {

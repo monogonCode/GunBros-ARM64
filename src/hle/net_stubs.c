@@ -127,7 +127,7 @@ static void h_stub_mkstemp(hle_t *c) {
 static void h_gethostbyname(hle_t *c) {
     const char *host = (const char*)guest_to_host(c->r0);
     if (host && strstr(host, "glu.com") != NULL) {
-        LOGI("Intercepted dead Glu endpoint: %s (returning NULL)", host);
+        log_stub_call_once("gethostbyname:dead_glu_endpoint", c->lr, host);
         c->r0 = 0;
     } else if (host) {
         struct hostent *he = gethostbyname(host);

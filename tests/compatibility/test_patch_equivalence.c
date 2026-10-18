@@ -79,12 +79,6 @@ static void legacy_apply_all(uint8_t *code_base) {
     memcpy(code_base + 0x004f0060, tramp_g, sizeof(tramp_g));
     *(uint32_t*)(code_base + 0x0036692c) = 0xea0625cb; // b 0x004f0060
 
-    // Patch H: Fix CMenuNavigationBar button label and meter/metric region indexing
-    *(uint32_t*)(code_base + 0x0031d418) = 0xe3a0a007; // mov r10, #7
-    *(uint32_t*)(code_base + 0x0031db1c) = 0xe2417007; // sub r7, r1, #7
-    *(uint32_t*)(code_base + 0x0031d4d8) = 0xe3a0100e; // mov r1, #14
-    *(uint32_t*)(code_base + 0x0031d4fc) = 0xe3a0100f; // mov r1, #15
-    *(uint32_t*)(code_base + 0x0031d518) = 0xe3a01010; // mov r1, #16
 
     // Patch I: Fix CFileMgr_Android local file operations (Delete, Rename, Size, Exists, MkDir, absoluteLocalPath)
     *(uint32_t*)(code_base + 0x00159ca0) = 0xe1a00000; // nop in absoluteLocalPath

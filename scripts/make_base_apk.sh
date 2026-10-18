@@ -40,24 +40,37 @@ if ! unzip -tq "$INPUT_APK" >/dev/null 2>&1; then
     exit 1
 fi
 
-# Validar que contenga el binario ARM32 del juego en assets
-if ! unzip -l "$INPUT_APK" | grep -q "assets/libandroidplatformjni.so"; then
-    echo "ADVERTENCIA: No se encontró 'assets/libandroidplatformjni.so' en el APK." >&2
-    echo "Asegúrate de que este es el APK oficial de Gun Bros para Android." >&2
-fi
-
 # Copiar a destino temporal
 TMP_APK="/tmp/gunbros_base_template_$$.apk"
-trap 'rm -f "$TMP_APK"' EXIT
+TMP_EXTRACT="/tmp/gunbros_extract_$$"
+trap 'rm -rf "$TMP_APK" "$TMP_EXTRACT"' EXIT
 
 cp -f "$INPUT_APK" "$TMP_APK"
+
+# Validar y preparar el binario ARM32 original en assets/
+if ! unzip -l "$TMP_APK" | grep -q "assets/libandroidplatformjni.so"; then
+    if unzip -l "$TMP_APK" | grep -q "lib/armeabi/libandroidplatformjni.so"; then
+        echo "  [INFO] Extrayendo lib/armeabi/libandroidplatformjni.so a assets/libandroidplatformjni.so..."
+        mkdir -p "$TMP_EXTRACT/assets"
+        unzip -q -j "$TMP_APK" "lib/armeabi/libandroidplatformjni.so" -d "$TMP_EXTRACT/assets"
+        (cd "$TMP_EXTRACT" && zip -0 -q -u "$TMP_APK" "assets/libandroidplatformjni.so")
+    elif unzip -l "$TMP_APK" | grep -q "lib/armeabi-v7a/libandroidplatformjni.so"; then
+        echo "  [INFO] Extrayendo lib/armeabi-v7a/libandroidplatformjni.so a assets/libandroidplatformjni.so..."
+        mkdir -p "$TMP_EXTRACT/assets"
+        unzip -q -j "$TMP_APK" "lib/armeabi-v7a/libandroidplatformjni.so" -d "$TMP_EXTRACT/assets"
+        (cd "$TMP_EXTRACT" && zip -0 -q -u "$TMP_APK" "assets/libandroidplatformjni.so")
+    else
+        echo "ERROR: No se encontró 'libandroidplatformjni.so' ni en assets/ ni en lib/armeabi/ del APK." >&2
+        exit 1
+    fi
+fi
 
 # Eliminar firmas anteriores (META-INF/*.SF, *.RSA, *.MF) para evitar colisiones
 echo "  [1/2] Limpiando firmas antiguas de META-INF..."
 zip -q -d "$TMP_APK" "META-INF/*" 2>/dev/null || true
 
-# Eliminar bibliotecas arm64-v8a previas si existieran para evitar residuos
-zip -q -d "$TMP_APK" "lib/arm64-v8a/*" 2>/dev/null || true
+# Eliminar bibliotecas 32-bit armeabi y arm64 previas para dejar espacio limpio al bridge
+zip -q -d "$TMP_APK" "lib/armeabi/*" "lib/armeabi-v7a/*" "lib/arm64-v8a/*" 2>/dev/null || true
 
 # Mover a la raíz del proyecto
 echo "  [2/2] Creando base_template.apk..."

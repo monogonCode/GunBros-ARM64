@@ -74,7 +74,23 @@ int main(void) {
 
     path_mapper_normalize("atlas_wvga.png", out, sizeof(out));
     assert(strcmp(out, xga_path) == 0);
-    TEST_PASS("WVGA to XGA fallback resolution when target missing");
+    // Test 7: Internal save directory fallback resolution
+    const char *test_save_dir = "/tmp/gunbros_test_env/save/";
+    snprintf(mkdir_cmd, sizeof(mkdir_cmd), "mkdir -p %s", test_save_dir);
+    system(mkdir_cmd);
+    path_mapper_set_save_dir(test_save_dir);
+    assert(strcmp(path_mapper_get_save_dir(), test_save_dir) == 0);
+
+    char save_file_path[256];
+    snprintf(save_file_path, sizeof(save_file_path), "%spack0_core_xga.big", test_save_dir);
+    FILE *f_save = fopen(save_file_path, "wb");
+    assert(f_save != NULL);
+    fputc(0, f_save);
+    fclose(f_save);
+
+    path_mapper_normalize("pack0_core_xga.big", out, sizeof(out));
+    assert(strcmp(out, save_file_path) == 0);
+    TEST_PASS("Internal save directory fallback resolution when target missing in base");
 
     // Clean up
     snprintf(mkdir_cmd, sizeof(mkdir_cmd), "rm -rf /tmp/gunbros_test_env");
