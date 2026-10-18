@@ -124,7 +124,13 @@ fi
 # ------------------------------------------------------------------------------
 echo -e "\n${CYAN}[4/5] Verificando cabeceras de Boost...${NC}"
 NEEDS_BOOST=false
-if [[ ! -d "$BOOST_ROOT" && ! -d "$PROJECT_ROOT/third_party/boost/include/boost" && ! -d "$PROJECT_ROOT/third_party/boost/usr/include/boost" && ! -d "/usr/include/boost" ]]; then
+if [[ -f "$PROJECT_ROOT/third_party/boost/include/boost/version.hpp" ]]; then
+    BOOST_ROOT="$PROJECT_ROOT/third_party/boost/include"
+elif [[ -f "$PROJECT_ROOT/third_party/boost/usr/include/boost/version.hpp" ]]; then
+    BOOST_ROOT="$PROJECT_ROOT/third_party/boost/usr/include"
+elif [[ -f "/usr/include/boost/version.hpp" ]]; then
+    BOOST_ROOT="/usr/include"
+else
     NEEDS_BOOST=true
 fi
 
@@ -135,7 +141,7 @@ if [ "$NEEDS_BOOST" = true ]; then
     curl -# -L -o "$TMP_BOOST" "$BOOST_URL"
     mkdir -p "$PROJECT_ROOT/third_party/boost/include"
     echo -e "  ${YELLOW}Extrayendo cabeceras en third_party/boost/include...${NC}"
-    tar -xzf "$TMP_BOOST" --wildcards "boost_*/boost" --strip-components=1 -C "$PROJECT_ROOT/third_party/boost/include"
+    tar -xzf "$TMP_BOOST" -C "$PROJECT_ROOT/third_party/boost/include" --strip-components=1 "boost_1_83_0/boost"
     rm -f "$TMP_BOOST"
     BOOST_ROOT="$PROJECT_ROOT/third_party/boost/include"
     echo -e "  ${GREEN}[✓] Cabeceras de Boost listas en third_party/boost/include${NC}"
@@ -155,6 +161,7 @@ fi
 
 if [[ ! -f "$DYNARMIC_LIB" ]]; then
     echo -e "  ${YELLOW}Compilando bibliotecas estáticas de Dynarmic para Android ARM64...${NC}"
+    rm -rf "$PROJECT_ROOT/third_party/dynarmic/build-arm64"
     mkdir -p "$PROJECT_ROOT/third_party/dynarmic/build-arm64"
     "$CMAKE_BIN" -B "$PROJECT_ROOT/third_party/dynarmic/build-arm64" -S "$PROJECT_ROOT/third_party/dynarmic" \
       -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
@@ -164,6 +171,8 @@ if [[ ! -f "$DYNARMIC_LIB" ]]; then
       -DDYNARMIC_FRONTENDS=A32 \
       -DDYNARMIC_TESTS=OFF \
       -DDYNARMIC_USE_LLVM=OFF \
+      -DBoost_INCLUDE_DIR="$BOOST_ROOT" \
+      -DBoost_ROOT="$BOOST_ROOT" \
       -DBOOST_ROOT="$BOOST_ROOT"
 
     "$CMAKE_BIN" --build "$PROJECT_ROOT/third_party/dynarmic/build-arm64" --target dynarmic fmt mcl -j"$(nproc)"

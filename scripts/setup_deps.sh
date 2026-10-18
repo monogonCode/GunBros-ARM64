@@ -132,10 +132,10 @@ else
     ALL_OK=false
 fi
 
-if [[ -d "$BOOST_ROOT" ]]; then
+if [[ -f "$BOOST_ROOT/boost/version.hpp" || -f "$BOOST_ROOT/version.hpp" ]]; then
     echo -e "  ${GREEN}[✓]${NC} Cabeceras de Boost: $BOOST_ROOT"
 else
-    echo -e "  ${RED}[✗]${NC} Carpeta de Boost no encontrada en $BOOST_ROOT"
+    echo -e "  ${RED}[✗]${NC} Cabeceras de Boost no encontradas en $BOOST_ROOT"
     ALL_OK=false
 fi
 
