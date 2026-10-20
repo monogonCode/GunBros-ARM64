@@ -49,12 +49,12 @@ static const game_patch_entry_t s_game_patches[] = {
     { GUEST_PATCH_FILEMGR_RENAME_SRC,  true, 0x0afffff3, 0xe1a00000, 4, "CFileMgr_Android Rename src nop" },
     { GUEST_PATCH_FILEMGR_RENAME_DST,  true, 0x0affffed, 0xe1a00000, 4, "CFileMgr_Android Rename dst nop" },
 
-    /* Patch J: GameSpy network polling busy loops */
-    { GUEST_PATCH_GAMESPY_GT2_THINK,   true, 0xe92d4010, 0xe12fff1e, 4, "gt2Think bx lr" },
-    { GUEST_PATCH_GAMESPY_PEER_THINK,  true, 0xe92d4070, 0xe12fff1e, 4, "peerThink bx lr" },
-    { GUEST_PATCH_GAMESPY_NN_THINK,    true, 0xe92d4ff0, 0xe12fff1e, 4, "NNThink bx lr" },
-    { GUEST_PATCH_GAMESPY_GTI2_MOV,    true, 0xe92d41f0, 0xe3a00000, 4, "gti2ConnectionThink mov r0, 0" },
-    { GUEST_PATCH_GAMESPY_GTI2_BX,     true, 0xe590300c, 0xe12fff1e, 4, "gti2ConnectionThink bx lr" },
+    /* Patch J: GameSpy network polling busy loops - disabled for OpenSpy multiplayer */
+    // { GUEST_PATCH_GAMESPY_GT2_THINK,   true, 0xe92d4010, 0xe12fff1e, 4, "gt2Think bx lr" },
+    // { GUEST_PATCH_GAMESPY_PEER_THINK,  true, 0xe92d4070, 0xe12fff1e, 4, "peerThink bx lr" },
+    // { GUEST_PATCH_GAMESPY_NN_THINK,    true, 0xe92d4ff0, 0xe12fff1e, 4, "NNThink bx lr" },
+    // { GUEST_PATCH_GAMESPY_GTI2_MOV,    true, 0xe92d41f0, 0xe3a00000, 4, "gti2ConnectionThink mov r0, 0" },
+    // { GUEST_PATCH_GAMESPY_GTI2_BX,     true, 0xe590300c, 0xe12fff1e, 4, "gti2ConnectionThink bx lr" },
 
     /* Patch K: CProfileManager::LoginInitResourceLoaderCallback bypass server isReady to load local profile */
     { GUEST_PATCH_PROFILE_LOGIN_INIT_LDR,  true, 0xeb0322dd, 0xe59f41d0, 4, "ProfileManager LoginInit ldr r4, [pc, 0x1d0]" },

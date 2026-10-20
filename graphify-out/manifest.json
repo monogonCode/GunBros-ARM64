@@ -1,0 +1,422 @@
+{
+  "/home/martin/Proyectos/GunBros-ARM64/build.sh": {
+    "mtime": 1792146501.0897706,
+    "ast_hash": "f9c25de9c77c5f17281db8864240ab53",
+    "semantic_hash": "f9c25de9c77c5f17281db8864240ab53"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/bridge/bridge_core.h": {
+    "mtime": 1792145738.6382847,
+    "ast_hash": "eec3acdcfb7258beef65bb6dd0561e8e",
+    "semantic_hash": "eec3acdcfb7258beef65bb6dd0561e8e"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/bridge/jni_exports.h": {
+    "mtime": 1792145800.8653772,
+    "ast_hash": "02e463ca3472d3404acaee7c19190e92",
+    "semantic_hash": "02e463ca3472d3404acaee7c19190e92"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/common/common.h": {
+    "mtime": 1792244522.8365562,
+    "ast_hash": "8cfaea6dc7da590b35c8948b4780d472",
+    "semantic_hash": "8cfaea6dc7da590b35c8948b4780d472"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/common/sha256.h": {
+    "mtime": 1792244522.8365562,
+    "ast_hash": "9bb51d1f42612ad221377941b9ab76ce",
+    "semantic_hash": "9bb51d1f42612ad221377941b9ab76ce"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/compatibility/game_hooks.h": {
+    "mtime": 1792244522.8365562,
+    "ast_hash": "81097870d1db6a79e55fbbd56902f7d4",
+    "semantic_hash": "81097870d1db6a79e55fbbd56902f7d4"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/compatibility/game_patches.h": {
+    "mtime": 1792244522.8365562,
+    "ast_hash": "8f13fe04c7fbea1303b7abb3cc0bfcee",
+    "semantic_hash": "8f13fe04c7fbea1303b7abb3cc0bfcee"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/compatibility/guest_helpers_bin.h": {
+    "mtime": 1792244522.8365562,
+    "ast_hash": "e8a5c1114ab2754bf1e4429f52a7d64c",
+    "semantic_hash": "e8a5c1114ab2754bf1e4429f52a7d64c"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/compatibility/guest_symbols.h": {
+    "mtime": 1792244522.8365562,
+    "ast_hash": "c4660fd358ae3b9a15a5b95074e40566",
+    "semantic_hash": "c4660fd358ae3b9a15a5b95074e40566"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/compatibility/jni_audio.h": {
+    "mtime": 1792244522.8365562,
+    "ast_hash": "e0169baae5578747bfe196d24244ceeb",
+    "semantic_hash": "e0169baae5578747bfe196d24244ceeb"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/compatibility/jni_methods.h": {
+    "mtime": 1792244522.8365562,
+    "ast_hash": "98159ac914aaa92d87af1eaa71a87ff9",
+    "semantic_hash": "98159ac914aaa92d87af1eaa71a87ff9"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/compatibility/jni_virtual_machine.h": {
+    "mtime": 1792244522.8365562,
+    "ast_hash": "cc0dd9f7d2af14597de22335e057fb07",
+    "semantic_hash": "cc0dd9f7d2af14597de22335e057fb07"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/emulator/dynarmic_backend.h": {
+    "mtime": 1792145425.6736789,
+    "ast_hash": "ba285ed01981c8e3b932cb4ca8a44fa2",
+    "semantic_hash": "ba285ed01981c8e3b932cb4ca8a44fa2"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/emulator/elf_loader.h": {
+    "mtime": 1792145694.7779186,
+    "ast_hash": "209835c700ff4f4d431a2a953f01f859",
+    "semantic_hash": "209835c700ff4f4d431a2a953f01f859"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/emulator/guest_memory.h": {
+    "mtime": 1792145485.3618674,
+    "ast_hash": "acbe1ac0fb377d4b323b4985098bc06f",
+    "semantic_hash": "acbe1ac0fb377d4b323b4985098bc06f"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/emulator/hle_dispatcher.h": {
+    "mtime": 1792244522.8365562,
+    "ast_hash": "12587219680fb5cee105fffc78ce46c1",
+    "semantic_hash": "12587219680fb5cee105fffc78ce46c1"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/filesystem/directory_operations.h": {
+    "mtime": 1792145157.6500964,
+    "ast_hash": "772120330f7876b84e1bb8de6b600fc7",
+    "semantic_hash": "772120330f7876b84e1bb8de6b600fc7"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/filesystem/file_handles.h": {
+    "mtime": 1792145107.1439047,
+    "ast_hash": "737d2ff25f44d7e13ef615f760857b0e",
+    "semantic_hash": "737d2ff25f44d7e13ef615f760857b0e"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/filesystem/file_operations.h": {
+    "mtime": 1792244522.8374097,
+    "ast_hash": "14ab1eab7325effe31ab9500f0ddd630",
+    "semantic_hash": "14ab1eab7325effe31ab9500f0ddd630"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/filesystem/filesystem_logger.h": {
+    "mtime": 1792145121.5666704,
+    "ast_hash": "a96405619698fc63b15fd3140807e863",
+    "semantic_hash": "a96405619698fc63b15fd3140807e863"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/filesystem/path_mapper.h": {
+    "mtime": 1792326784.160048,
+    "ast_hash": "5db3889d274ef6ddd6accdef44170e8d",
+    "semantic_hash": "5db3889d274ef6ddd6accdef44170e8d"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/hle/hle_libc.h": {
+    "mtime": 1792244522.8374097,
+    "ast_hash": "749d3636e1a08db8c60561208c3fe993",
+    "semantic_hash": "749d3636e1a08db8c60561208c3fe993"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/platform/android_audio.h": {
+    "mtime": 1792145354.7146227,
+    "ast_hash": "13b81464586db3ccd104937132439e2b",
+    "semantic_hash": "13b81464586db3ccd104937132439e2b"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/platform/android_window.h": {
+    "mtime": 1792326989.6017168,
+    "ast_hash": "c06cee2724ec28e4dddbe5e94dbcfbe7",
+    "semantic_hash": "c06cee2724ec28e4dddbe5e94dbcfbe7"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/platform/jni_env_helper.h": {
+    "mtime": 1792145250.829957,
+    "ast_hash": "8f6023a910ffb091ba307f7a8c5692aa",
+    "semantic_hash": "8f6023a910ffb091ba307f7a8c5692aa"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/include/gunbros/platform/pcm_ring.h": {
+    "mtime": 1792145241.4840739,
+    "ast_hash": "4af20d83f193987971d5ace4c87ffb05",
+    "semantic_hash": "4af20d83f193987971d5ace4c87ffb05"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/scripts/build.sh": {
+    "mtime": 1792327961.2333891,
+    "ast_hash": "e474efb17d48fd8b5898d82706a811ed",
+    "semantic_hash": "e474efb17d48fd8b5898d82706a811ed"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/scripts/collect-logs.sh": {
+    "mtime": 1792244522.8374097,
+    "ast_hash": "5d5a34a2c13bc72658325de6285a58e4",
+    "semantic_hash": "5d5a34a2c13bc72658325de6285a58e4"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/scripts/common_env.sh": {
+    "mtime": 1792297940.2949753,
+    "ast_hash": "a302b623fd8014e88e40559f98963148",
+    "semantic_hash": "a302b623fd8014e88e40559f98963148"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/scripts/deploy.sh": {
+    "mtime": 1792156618.7248354,
+    "ast_hash": "bb920aa96ea19a9c82003c0498e28fd7",
+    "semantic_hash": "bb920aa96ea19a9c82003c0498e28fd7"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/scripts/download_deps.sh": {
+    "mtime": 1792298615.4398708,
+    "ast_hash": "33bcbf4fdc683109ea81710aa85f0719",
+    "semantic_hash": "33bcbf4fdc683109ea81710aa85f0719"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/scripts/make_base_apk.sh": {
+    "mtime": 1792325688.877372,
+    "ast_hash": "4897ef49ce108863beffb8aae9f192f2",
+    "semantic_hash": "4897ef49ce108863beffb8aae9f192f2"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/scripts/package.sh": {
+    "mtime": 1792244522.8374097,
+    "ast_hash": "243fe3b6d145a64b586c78d47b6787a2",
+    "semantic_hash": "243fe3b6d145a64b586c78d47b6787a2"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/scripts/run_tests.sh": {
+    "mtime": 1792244522.8374097,
+    "ast_hash": "4eb3aad6f7292120d923bb7706721640",
+    "semantic_hash": "4eb3aad6f7292120d923bb7706721640"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/scripts/setup_deps.sh": {
+    "mtime": 1792298623.6985633,
+    "ast_hash": "2f4b48961ec436fd5e0aef5614bed4e8",
+    "semantic_hash": "2f4b48961ec436fd5e0aef5614bed4e8"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/setup.sh": {
+    "mtime": 1792156490.1457121,
+    "ast_hash": "ee8e609b8aec4b652ab2fff6cdb28239",
+    "semantic_hash": "ee8e609b8aec4b652ab2fff6cdb28239"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/bridge/bridge_core.c": {
+    "mtime": 1792244522.8374097,
+    "ast_hash": "78d5ef9b263fb6d0341dd36615ddf18f",
+    "semantic_hash": "78d5ef9b263fb6d0341dd36615ddf18f"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/bridge/jni_exports.c": {
+    "mtime": 1792327042.8951313,
+    "ast_hash": "6c7f7dbd2dc001d1df89ce4b3f0b9415",
+    "semantic_hash": "6c7f7dbd2dc001d1df89ce4b3f0b9415"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/common/sha256.c": {
+    "mtime": 1792244522.8382978,
+    "ast_hash": "b4fe3646d4a048a54068ff49733a9239",
+    "semantic_hash": "b4fe3646d4a048a54068ff49733a9239"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/compatibility/game_hooks.c": {
+    "mtime": 1792244522.8382978,
+    "ast_hash": "2d47a762fe97a3eb589712291dddf813",
+    "semantic_hash": "2d47a762fe97a3eb589712291dddf813"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/compatibility/game_patches.c": {
+    "mtime": 1792333045.1475935,
+    "ast_hash": "e2c107ae2febd0654920a30e4f5de5a5",
+    "semantic_hash": "e2c107ae2febd0654920a30e4f5de5a5"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/compatibility/jni_audio.c": {
+    "mtime": 1792244522.8382978,
+    "ast_hash": "9289c73a882b6d0020462fcfef530164",
+    "semantic_hash": "9289c73a882b6d0020462fcfef530164"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/compatibility/jni_methods.c": {
+    "mtime": 1792327930.3034208,
+    "ast_hash": "e6f02de0025cae9379015c6e8c174db3",
+    "semantic_hash": "e6f02de0025cae9379015c6e8c174db3"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/compatibility/jni_virtual_machine.c": {
+    "mtime": 1792327950.7215056,
+    "ast_hash": "56fe411e711177be17ce1ee351422ac6",
+    "semantic_hash": "56fe411e711177be17ce1ee351422ac6"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/emulator/dynarmic_backend.cpp": {
+    "mtime": 1792244522.8384097,
+    "ast_hash": "23cfde066ab396ee06ab3c03f9dd73e1",
+    "semantic_hash": "23cfde066ab396ee06ab3c03f9dd73e1"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/emulator/elf_loader.c": {
+    "mtime": 1792244522.8384097,
+    "ast_hash": "a85e1ba17d58fa69f124f2386e2fd658",
+    "semantic_hash": "a85e1ba17d58fa69f124f2386e2fd658"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/emulator/guest_memory.c": {
+    "mtime": 1792146249.2206452,
+    "ast_hash": "ed8c255ab7318415212d162b5975d9e2",
+    "semantic_hash": "ed8c255ab7318415212d162b5975d9e2"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/filesystem/directory_operations.c": {
+    "mtime": 1792146405.2502499,
+    "ast_hash": "e4d44940a3403b605f56f3880e6d3ca7",
+    "semantic_hash": "e4d44940a3403b605f56f3880e6d3ca7"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/filesystem/file_handles.c": {
+    "mtime": 1792145115.807764,
+    "ast_hash": "e0fa5c8caf0cafc1da4ad5881b41953c",
+    "semantic_hash": "e0fa5c8caf0cafc1da4ad5881b41953c"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/filesystem/file_operations.c": {
+    "mtime": 1792244522.8384097,
+    "ast_hash": "03dea862325fef35f6cad089e93d3a1e",
+    "semantic_hash": "03dea862325fef35f6cad089e93d3a1e"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/filesystem/filesystem_logger.c": {
+    "mtime": 1792244522.8384097,
+    "ast_hash": "8017e176a230ef35efb3786e606eced1",
+    "semantic_hash": "8017e176a230ef35efb3786e606eced1"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/filesystem/path_mapper.c": {
+    "mtime": 1792326806.127871,
+    "ast_hash": "b1505ae7a976669bb6aaa40277d87a9c",
+    "semantic_hash": "b1505ae7a976669bb6aaa40277d87a9c"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/hle/gles1.c": {
+    "mtime": 1792244522.8384097,
+    "ast_hash": "1ad08bc2820a2afff2c3dff5b5f5c8a6",
+    "semantic_hash": "1ad08bc2820a2afff2c3dff5b5f5c8a6"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/hle/hle_internal.h": {
+    "mtime": 1792244522.8391569,
+    "ast_hash": "604b277da60cdf97290cae42cfcb183e",
+    "semantic_hash": "604b277da60cdf97290cae42cfcb183e"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/hle/hle_table.c": {
+    "mtime": 1792244522.8391569,
+    "ast_hash": "d5ecc135398a9e87e5818bf3baf7eb11",
+    "semantic_hash": "d5ecc135398a9e87e5818bf3baf7eb11"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/hle/libc_stdio.c": {
+    "mtime": 1792244522.8391569,
+    "ast_hash": "8ea3abff05e8622030631bc97ccdf103",
+    "semantic_hash": "8ea3abff05e8622030631bc97ccdf103"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/hle/libc_string.c": {
+    "mtime": 1792244522.8391569,
+    "ast_hash": "239f7ffb656494a52ea436cdbb4e1159",
+    "semantic_hash": "239f7ffb656494a52ea436cdbb4e1159"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/hle/libc_time.c": {
+    "mtime": 1792244522.8391569,
+    "ast_hash": "a78802fb8e1bf31e77d9771dfbeec95a",
+    "semantic_hash": "a78802fb8e1bf31e77d9771dfbeec95a"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/hle/net_stubs.c": {
+    "mtime": 1792328602.9291317,
+    "ast_hash": "c0efbe2aeba3dc2e0f7283ad74424f96",
+    "semantic_hash": "c0efbe2aeba3dc2e0f7283ad74424f96"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/platform/android_audio.c": {
+    "mtime": 1792244522.8397474,
+    "ast_hash": "8ccc259cec002a0f7910ed1e0fc0e622",
+    "semantic_hash": "8ccc259cec002a0f7910ed1e0fc0e622"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/platform/android_window.c": {
+    "mtime": 1792327032.4278464,
+    "ast_hash": "0fe5f4e762105c701c1c5c12e98006a5",
+    "semantic_hash": "0fe5f4e762105c701c1c5c12e98006a5"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/platform/jni_env_helper.c": {
+    "mtime": 1792145998.635443,
+    "ast_hash": "4eb2dbe6dfe1ead825be09a4a3be278c",
+    "semantic_hash": "4eb2dbe6dfe1ead825be09a4a3be278c"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/src/platform/pcm_ring.c": {
+    "mtime": 1792145247.3780003,
+    "ast_hash": "43a275f4ea4bee7a70cc62ceba814286",
+    "semantic_hash": "43a275f4ea4bee7a70cc62ceba814286"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/tests/common/test_sha256.c": {
+    "mtime": 1792244522.8397474,
+    "ast_hash": "c2e06e2166662b4283bf6fa329528f63",
+    "semantic_hash": "c2e06e2166662b4283bf6fa329528f63"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/tests/compatibility/test_patch_equivalence.c": {
+    "mtime": 1792330039.594207,
+    "ast_hash": "5f3ec70703c6e24b0041041a05d7a163",
+    "semantic_hash": "5f3ec70703c6e24b0041041a05d7a163"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/tests/emulator/test_guest_memory.c": {
+    "mtime": 1792146299.0848818,
+    "ast_hash": "e9d0f765f38223732f488aece430b3b7",
+    "semantic_hash": "e9d0f765f38223732f488aece430b3b7"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/tests/filesystem/test_file_operations.c": {
+    "mtime": 1792244522.8399768,
+    "ast_hash": "1142a2404457270c0aaf0a566f59846e",
+    "semantic_hash": "1142a2404457270c0aaf0a566f59846e"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/tests/filesystem/test_host_io_persistence.c": {
+    "mtime": 1792244522.8399768,
+    "ast_hash": "7d80cdd533e137f69fa4af667a1a5988",
+    "semantic_hash": "7d80cdd533e137f69fa4af667a1a5988"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/tests/filesystem/test_path_mapper.c": {
+    "mtime": 1792326857.1194596,
+    "ast_hash": "e2a7ea8e6649f6b5f40754b3e06a6012",
+    "semantic_hash": "e2a7ea8e6649f6b5f40754b3e06a6012"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/tests/golden/golden_save_runner.c": {
+    "mtime": 1792244522.8404415,
+    "ast_hash": "ed9cdb5fff8c7295b281f89958bc31eb",
+    "semantic_hash": "ed9cdb5fff8c7295b281f89958bc31eb"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/tests/hle/test_hle_resolution.c": {
+    "mtime": 1792244522.8404415,
+    "ast_hash": "2d39ce8ca1b993d35b384247f6110ef2",
+    "semantic_hash": "2d39ce8ca1b993d35b384247f6110ef2"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/tests/platform/test_pcm_ring.c": {
+    "mtime": 1792146341.957224,
+    "ast_hash": "89663d4abba4a21d53e0d5b8c016f6a2",
+    "semantic_hash": "89663d4abba4a21d53e0d5b8c016f6a2"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/tests/test_hle_libc.c": {
+    "mtime": 1792244522.8404415,
+    "ast_hash": "7b6ccdc1bef53b6960e68cb0ceeb1b60",
+    "semantic_hash": "7b6ccdc1bef53b6960e68cb0ceeb1b60"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/CMakeLists.txt": {
+    "mtime": 1792297954.630443,
+    "ast_hash": "a3f4be2fa31cc79f54eef4806ee09777",
+    "semantic_hash": "a3f4be2fa31cc79f54eef4806ee09777"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/README.md": {
+    "mtime": 1792298029.680657,
+    "ast_hash": "d3d9f5a56a09d62e677a4c668deae6c2",
+    "semantic_hash": "d3d9f5a56a09d62e677a4c668deae6c2"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/docs/REVIEW_CHANGES.md": {
+    "mtime": 1792244522.836206,
+    "ast_hash": "5fb3ca09fd9d04c7fc871aa78a40f523",
+    "semantic_hash": "5fb3ca09fd9d04c7fc871aa78a40f523"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/docs/architecture.md": {
+    "mtime": 1792244522.8365562,
+    "ast_hash": "2670354a52fd35d1e96ccf704d00c056",
+    "semantic_hash": "2670354a52fd35d1e96ccf704d00c056"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/docs/build-guide.md": {
+    "mtime": 1792298021.710953,
+    "ast_hash": "d5f2964c87df813b17746a56d32160a6",
+    "semantic_hash": "d5f2964c87df813b17746a56d32160a6"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/docs/compatibility.md": {
+    "mtime": 1792244522.8365562,
+    "ast_hash": "d9a64adcdd778d310bd5eee676c90328",
+    "semantic_hash": "d9a64adcdd778d310bd5eee676c90328"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/docs/debugging.md": {
+    "mtime": 1792155355.9185915,
+    "ast_hash": "789e88598bce0e3800b145862a5e5775",
+    "semantic_hash": "789e88598bce0e3800b145862a5e5775"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/docs/filesystem.md": {
+    "mtime": 1792244522.8365562,
+    "ast_hash": "2549b400eb2c2150f44a42611c0370b1",
+    "semantic_hash": "2549b400eb2c2150f44a42611c0370b1"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/docs/save-debugging.md": {
+    "mtime": 1792244522.8365562,
+    "ast_hash": "1156d7445de8d7960080b0789e267dc9",
+    "semantic_hash": "1156d7445de8d7960080b0789e267dc9"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/docs/testing.md": {
+    "mtime": 1792155355.9185915,
+    "ast_hash": "a16987f644aea1f1b34a6d8f886613f9",
+    "semantic_hash": "a16987f644aea1f1b34a6d8f886613f9"
+  },
+  "/home/martin/Proyectos/GunBros-ARM64/tests/golden/README.md": {
+    "mtime": 1792244522.8399768,
+    "ast_hash": "539a6cee387f5e1762d8961bde1769b0",
+    "semantic_hash": "539a6cee387f5e1762d8961bde1769b0"
+  }
+}

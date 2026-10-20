@@ -22,6 +22,7 @@ void window_get_screen_dimensions(int *sw, int *sh);
 void window_compute_viewport(int sw, int sh);
 void window_get_origin(int *ox, int *oy);
 void window_screen_to_game(int sx, int sy, int *gx, int *gy);
+void window_game_to_screen(int gx, int gy, int gw, int gh, int *sx, int *sy, int *out_sw, int *out_sh);
 void window_clear_bars(void);
 
 void window_set_surface(JNIEnv *env, jobject holder);

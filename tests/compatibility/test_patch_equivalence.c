@@ -91,12 +91,12 @@ static void legacy_apply_all(uint8_t *code_base) {
     *(uint32_t*)(code_base + 0x0015a30c) = 0xe1a00000; // nop in Rename src
     *(uint32_t*)(code_base + 0x0015a324) = 0xe1a00000; // nop in Rename dst
 
-    // Patch J: Disable dead GameSpy network polling busy-loops
-    *(uint32_t*)(code_base + 0x003c5c88) = 0xe12fff1e; // gt2Think -> bx lr
-    *(uint32_t*)(code_base + 0x003a65d0) = 0xe12fff1e; // peerThink -> bx lr
-    *(uint32_t*)(code_base + 0x003cbc68) = 0xe12fff1e; // NNThink -> bx lr
-    *(uint32_t*)(code_base + 0x003c44f0) = 0xe3a00000; // gti2ConnectionThink -> mov r0, #0
-    *(uint32_t*)(code_base + 0x003c44f4) = 0xe12fff1e; // bx lr
+    // Patch J: Disabled to allow OpenSpy multiplayer polling
+    // *(uint32_t*)(code_base + 0x003c5c88) = 0xe12fff1e; // gt2Think -> bx lr
+    // *(uint32_t*)(code_base + 0x003a65d0) = 0xe12fff1e; // peerThink -> bx lr
+    // *(uint32_t*)(code_base + 0x003cbc68) = 0xe12fff1e; // NNThink -> bx lr
+    // *(uint32_t*)(code_base + 0x003c44f0) = 0xe3a00000; // gti2ConnectionThink -> mov r0, #0
+    // *(uint32_t*)(code_base + 0x003c44f4) = 0xe12fff1e; // bx lr
 
     // Patch K: CProfileManager::LoginInitResourceLoaderCallback bypass server isReady
     *(uint32_t*)(code_base + 0x0035c264) = 0xe59f41d0; // ldr r4, [pc, #0x1d0]

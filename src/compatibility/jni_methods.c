@@ -1,5 +1,6 @@
 #include "gunbros/compatibility/jni_methods.h"
 #include "gunbros/compatibility/jni_audio.h"
+#include "gunbros/compatibility/jni_textbox.h"
 #include "gunbros/compatibility/jni_virtual_machine.h"
 #include "gunbros/emulator/guest_memory.h"
 #include "gunbros/platform/jni_env_helper.h"
@@ -154,6 +155,61 @@ static bool jni_method_return_false(const jni_call_context_t *ctx) {
     return true;
 }
 
+static bool jni_method_is_user_on_wifi(const jni_call_context_t *ctx) {
+    static bool logged = false;
+    if (!logged) {
+        LOGI("[JNI] GluCallback.IsUserOnWiFi -> returning true (1)");
+        logged = true;
+    }
+    *ctx->r0 = 1;
+    return true;
+}
+
+static bool jni_method_get_type(const jni_call_context_t *ctx) {
+    LOGI("[JNI] NetworkInfo.getType -> returning 1 (TYPE_WIFI)");
+    *ctx->r0 = 1; // ConnectivityManager.TYPE_WIFI
+    return true;
+}
+
+static bool jni_method_launch_url(const jni_call_context_t *ctx) {
+    const char *url = jvm_get_last_string();
+    uint32_t type = get_jni_method_arg(ctx->idx, *ctx->r3, ctx->sp, 1);
+    LOGI("[JNI] LaunchURL called: url='%s', type=%u", url ? url : "(null)", type);
+
+    static const char *GUNBROS_WIKI_URL = "https://gunbros.fandom.com/wiki/Gun_Bros_Wiki";
+    if (url && (strstr(url, "ghome") != NULL || strstr(url, "m.glu.com") != NULL)) {
+        LOGI("[JNI] LaunchURL: Redirecting dead Glu URL '%s' -> '%s'", url, GUNBROS_WIKI_URL);
+        url = GUNBROS_WIKI_URL;
+    }
+
+    JNIEnv *real_env = platform_get_env();
+    jobject real_callback = platform_get_callback();
+    if (real_env && real_callback && url && url[0] != '\0') {
+        jstring j_url = (*real_env)->NewStringUTF(real_env, url);
+        if (j_url) {
+            jclass cls = (*real_env)->GetObjectClass(real_env, real_callback);
+            jmethodID mid = (*real_env)->GetMethodID(real_env, cls, "LaunchURL", "(Ljava/lang/String;I)Z");
+            if (mid) {
+                jboolean res = (*real_env)->CallBooleanMethod(real_env, real_callback, mid, j_url, (jint)type);
+                LOGI("[JNI] LaunchURL(String, int) returned %d from Java", res);
+            } else {
+                (*real_env)->ExceptionClear(real_env);
+                jmethodID mid_fallback = (*real_env)->GetMethodID(real_env, cls, "LaunchURL", "(Ljava/lang/String;)Z");
+                if (mid_fallback) {
+                    jboolean res = (*real_env)->CallBooleanMethod(real_env, real_callback, mid_fallback, j_url);
+                    LOGI("[JNI] LaunchURL(String) fallback returned %d from Java", res);
+                } else {
+                    (*real_env)->ExceptionClear(real_env);
+                    LOGE("[JNI] Could not find LaunchURL method in Java callback");
+                }
+            }
+            (*real_env)->DeleteLocalRef(real_env, j_url);
+        }
+    }
+    *ctx->r0 = 1;
+    return true;
+}
+
 static const jni_method_entry_t s_jni_method_table[] = {
     /* Separated audio subsystem methods */
     { "InitialiseSoundEngine",     jni_audio_initialise_sound_engine },
@@ -173,6 +229,22 @@ static const jni_method_entry_t s_jni_method_table[] = {
     { "EnableMultipleTouch",      jni_method_enable_multitouch },
     { "SetTickRate",              jni_method_set_tick_rate },
     { "StartMovieActivity",       jni_method_start_movie_activity },
+
+    /* URL Launch (Browser redirect) */
+    { "LaunchURL",                jni_method_launch_url },
+
+    /* Connectivity & network queries */
+    { "IsUserOnWiFi",             jni_method_is_user_on_wifi },
+    { "isUserOnWiFi",             jni_method_is_user_on_wifi },
+    { "getType",                  jni_method_get_type },
+
+    /* GluTextBox UI Text Fields */
+    { "SetBounds",                jni_method_textbox_set_bounds },
+    { "SetVisible",               jni_method_textbox_set_visible },
+    { "SetPasswordMask",          jni_method_textbox_set_password_mask },
+    { "SetText",                  jni_method_textbox_set_text },
+    { "GetText",                  jni_method_textbox_get_text },
+    { "RemoveTextView",           jni_method_textbox_remove_text_view },
 
     /* Feature queries returning false */
     { "IsPSP",                    jni_method_return_false },

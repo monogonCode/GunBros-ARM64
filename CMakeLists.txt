@@ -41,6 +41,7 @@ set(GUNBROS_COMPAT_SOURCES
     src/compatibility/jni_virtual_machine.c
     src/compatibility/jni_methods.c
     src/compatibility/jni_audio.c
+    src/compatibility/jni_textbox.c
 )
 
 set(GUNBROS_HLE_SOURCES

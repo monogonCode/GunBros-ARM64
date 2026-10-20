@@ -96,6 +96,25 @@ void window_screen_to_game(int sx, int sy, int *gx, int *gy) {
     if (gy) *gy = y < 0 ? 0 : (y >= s_game_h ? s_game_h - 1 : y);
 }
 
+void window_game_to_screen(int gx, int gy, int gw, int gh, int *sx, int *sy, int *out_sw, int *out_sh) {
+    pthread_mutex_lock(&s_egl_mutex);
+    int sw = s_real_screen_w > 0 ? s_real_screen_w : s_game_w;
+    int sh = s_real_screen_h > 0 ? s_real_screen_h : s_game_h;
+    int buf_w = s_buf_w > 0 ? s_buf_w : s_game_w;
+    int buf_h = s_buf_h > 0 ? s_buf_h : s_game_h;
+    int bx = gx + s_game_ox;
+    int by = gy + s_game_oy;
+    int res_x = (int)(((int64_t)bx * sw) / buf_w);
+    int res_y = (int)(((int64_t)by * sh) / buf_h);
+    int res_w = (int)(((int64_t)gw * sw) / buf_w);
+    int res_h = (int)(((int64_t)gh * sh) / buf_h);
+    pthread_mutex_unlock(&s_egl_mutex);
+    if (sx) *sx = res_x;
+    if (sy) *sy = res_y;
+    if (out_sw) *out_sw = res_w;
+    if (out_sh) *out_sh = res_h;
+}
+
 void window_clear_bars(void) {
 #ifdef __ANDROID__
     if (s_game_ox == 0 && s_game_oy == 0) return;

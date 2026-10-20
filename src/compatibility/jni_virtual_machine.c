@@ -1,5 +1,6 @@
 #include "gunbros/compatibility/jni_virtual_machine.h"
 #include "gunbros/compatibility/jni_methods.h"
+#include "gunbros/compatibility/jni_textbox.h"
 #include "gunbros/emulator/guest_memory.h"
 #include "gunbros/platform/jni_env_helper.h"
 #include "gunbros/platform/android_audio.h"
@@ -19,6 +20,8 @@ static char s_last_byte_array[512] = {0};
 
 void jvm_virtual_init(uint8_t *heap_base, uint8_t *stubs_base, const char *game_dir) {
     if (!heap_base || !stubs_base) return;
+
+    jni_textbox_init();
 
     // Setup 16 fake JavaVM stubs at 0x8000b000
     for (int i = 0; i < 16; i++) {
@@ -99,6 +102,8 @@ static inline bool is_frequent_jni_method_name(const char *name) {
     return (strcmp(name, "getSystemService") == 0 ||
             strcmp(name, "getActiveNetworkInfo") == 0 ||
             strcmp(name, "isAvailable") == 0 ||
+            strcmp(name, "IsUserOnWiFi") == 0 ||
+            strcmp(name, "isUserOnWiFi") == 0 ||
             strcmp(name, "interfaceIsOpen") == 0 ||
             strcmp(name, "canDisplayInterface") == 0 ||
             strcmp(name, "tick") == 0 ||
@@ -150,6 +155,11 @@ void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
         {
             const char *cname = (const char*)guest_to_host(*r1);
             if (idx == 6 && cname) {
+                if (strcmp(cname, "com/glu/platform/android/GluTextBox") == 0) {
+                    LOGI("JNI FindClass: '%s' -> GUEST_CLASS_GLU_TEXTBOX (0x%x)", cname, GUEST_CLASS_GLU_TEXTBOX);
+                    *r0 = GUEST_CLASS_GLU_TEXTBOX;
+                    break;
+                }
                 if (strcmp(cname, "com/glu/platform/android/GluPlatformActivity") != 0 &&
                     strcmp(cname, "android/net/ConnectivityManager") != 0 &&
                     strcmp(cname, "android/net/NetworkInfo") != 0 &&
@@ -168,11 +178,18 @@ void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
 
         case 21: // NewGlobalRef
         case 25: // NewLocalRef
+            if (jni_textbox_is_handle(*r1)) {
+                *r0 = *r1;
+                break;
+            }
             *r0 = *r1;
             break;
 
         case 22: // DeleteGlobalRef
         case 23: // DeleteLocalRef
+            if (idx == 22 && jni_textbox_is_handle(*r1)) {
+                jni_textbox_destroy(*r1);
+            }
             *r0 = 0;
             break;
 
@@ -184,6 +201,12 @@ void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
         case 28: // NewObject
         case 29: // NewObjectV
         case 30: // NewObjectA
+            if (*r1 == GUEST_CLASS_GLU_TEXTBOX) {
+                uint32_t tb = jni_textbox_create();
+                LOGI("JNI NewObject(GluTextBox) -> handle 0x%x", tb);
+                *r0 = tb;
+                break;
+            }
             *r0 = GUEST_DUMMY_OBJ;
             break;
 
@@ -380,14 +403,29 @@ void handle_jni_call(int idx, uint32_t *r0, uint32_t *r1, uint32_t *r2, uint32_t
 
         case 164: // GetStringLength
         case 168: // GetStringUTFLength
-            *r0 = 0;
+        {
+            uint32_t str_obj = *r1;
+            if (jni_textbox_is_string_obj(str_obj)) {
+                const char *s = (const char*)guest_to_host(str_obj);
+                *r0 = s ? (uint32_t)strlen(s) : 0;
+            } else {
+                *r0 = 0;
+            }
             break;
+        }
 
         case 165: // GetStringChars
         case 169: // GetStringUTFChars
         case 224: // GetStringCritical
-            *r0 = GUEST_EMPTY_STRING;
+        {
+            uint32_t str_obj = *r1;
+            if (jni_textbox_is_string_obj(str_obj)) {
+                *r0 = jni_textbox_get_string_ptr(str_obj);
+            } else {
+                *r0 = GUEST_EMPTY_STRING;
+            }
             break;
+        }
 
         case 166: // ReleaseStringChars
         case 170: // ReleaseStringUTFChars
